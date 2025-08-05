@@ -103,7 +103,8 @@ async def list_tools() -> list[ToolInfoJson]:
             continue
         provider = tool_info['provider']
         provider_api_key = config[provider].get('api_key', '').strip()
-        if provider != 'comfyui' and not provider_api_key:
+        # Allow comfyui and midjourney to show without API key
+        if provider not in ['comfyui', 'midjourney'] and not provider_api_key:
             continue
         res.append({
             'id': tool_id,

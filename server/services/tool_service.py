@@ -50,6 +50,7 @@ from tools.generate_image_by_recraft_v3_replicate import (
 )
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
+from tools.generate_image_by_midjourney import generate_image_by_midjourney
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -183,6 +184,12 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "replicate",
         "tool_function": generate_image_by_flux_kontext_max_replicate,
     },
+    "generate_image_by_midjourney": {
+        "display_name": "Midjourney",
+        "type": "image",
+        "provider": "midjourney",  
+        "tool_function": generate_image_by_midjourney,
+    },
 }
 
 
@@ -214,8 +221,12 @@ class ToolService:
         self.clear_tools()
         try:
             for provider_name, provider_config in config_service.app_config.items():
-                # register all tools by api provider with api key
-                if provider_config.get("api_key", ""):
+                # register all tools by api provider with api key OR for special providers (comfyui, midjourney)
+                has_api_key = provider_config.get("api_key", "")
+                has_url = provider_config.get("url", "")
+                is_special_provider = provider_name in ['comfyui', 'midjourney']
+                
+                if has_api_key or (is_special_provider and has_url):
                     for tool_id, tool_info in TOOL_MAPPING.items():
                         if tool_info.get("provider") == provider_name:
                             self.register_tool(tool_id, tool_info)

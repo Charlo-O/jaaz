@@ -67,6 +67,18 @@ const PROVIDER_OPTIONS = [
     },
   },
   {
+    value: 'midjourney',
+    label: 'Midjourney',
+    mediaOnly: true,
+    data: {
+      apiUrl: 'http://localhost:8080',
+      models: {
+        'midjourney': { type: 'image' },
+      },
+      api_key: '',
+    },
+  },
+  {
     value: '深度求索',
     label: '深度求索 (DeepSeek)',
     data: {

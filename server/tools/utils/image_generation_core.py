@@ -14,6 +14,7 @@ from ..image_providers.openai_provider import OpenAIImageProvider
 from ..image_providers.replicate_provider import ReplicateImageProvider
 from ..image_providers.volces_provider import VolcesProvider
 from ..image_providers.wavespeed_provider import WavespeedProvider
+from ..image_providers.midjourney_provider import MidjourneyProvider
 
 # from ..image_providers.comfyui_provider import ComfyUIProvider
 from .image_canvas_utils import (
@@ -27,6 +28,7 @@ IMAGE_PROVIDERS: dict[str, ImageProviderBase] = {
     "replicate": ReplicateImageProvider(),
     "volces": VolcesProvider(),
     "wavespeed": WavespeedProvider(),
+    "midjourney": MidjourneyProvider(),
 }
 
 
@@ -39,6 +41,7 @@ async def generate_image_with_provider(
     prompt: str,
     aspect_ratio: str = "1:1",
     input_images: Optional[list[str]] = None,
+    use_upscale: bool = False,
 ) -> str:
     """
     通用图像生成函数，支持不同的模型和提供商
@@ -51,6 +54,7 @@ async def generate_image_with_provider(
         tool_call_id: 工具调用ID
         config: 上下文运行配置，包含canvas_id，session_id，model_info，由langgraph注入
         input_images: 可选的输入参考图像列表
+        use_upscale: 是否使用upscale功能 (仅Midjourney支持)
 
     Returns:
         str: 生成结果消息
@@ -78,20 +82,42 @@ async def generate_image_with_provider(
         "provider": provider,
         "aspect_ratio": aspect_ratio,
         "input_images": input_images or [],
+        "use_upscale": use_upscale,
     }
 
-    # Generate image using the selected provider
-    mime_type, width, height, filename = await provider_instance.generate(
-        prompt=prompt,
-        model=model,
-        aspect_ratio=aspect_ratio,
-        input_images=processed_input_images,
-        metadata=metadata,
-    )
+    # Check if upscale is requested and provider supports it
+    if use_upscale and provider == "midjourney" and hasattr(provider_instance, 'generate_with_upscale'):
+        # Use upscale functionality for Midjourney
+        results = await provider_instance.generate_with_upscale(
+            prompt=prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            input_images=processed_input_images,
+            metadata=metadata,
+        )
+        
+        # Save all 4 upscaled images to canvas
+        image_urls = []
+        for i, (mime_type, width, height, filename) in enumerate(results, 1):
+            image_url = await save_image_to_canvas(
+                session_id, canvas_id, filename, mime_type, width, height
+            )
+            image_urls.append(f"![upscaled_image_{i}: {filename}](http://localhost:{DEFAULT_PORT}{image_url})")
+        
+        return f"4 upscaled images generated successfully:\n" + "\n".join(image_urls)
+    else:
+        # Generate single image using the selected provider
+        mime_type, width, height, filename = await provider_instance.generate(
+            prompt=prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            input_images=processed_input_images,
+            metadata=metadata,
+        )
 
-    # Save image to canvas
-    image_url = await save_image_to_canvas(
-        session_id, canvas_id, filename, mime_type, width, height
-    )
+        # Save image to canvas
+        image_url = await save_image_to_canvas(
+            session_id, canvas_id, filename, mime_type, width, height
+        )
 
-    return f"image generated successfully ![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})"
+        return f"image generated successfully ![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})"
