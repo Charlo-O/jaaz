@@ -51,6 +51,7 @@ from tools.generate_image_by_recraft_v3_replicate import (
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
 from tools.generate_image_by_midjourney import generate_image_by_midjourney
+from tools.generate_image_by_modelscope import generate_image_by_modelscope
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -189,6 +190,12 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "midjourney",  
         "tool_function": generate_image_by_midjourney,
+    },
+    "generate_image_by_modelscope": {
+        "display_name": "ModelScope Image Generator",
+        "type": "image",
+        "provider": "modelscope",
+        "tool_function": generate_image_by_modelscope,
     },
 }
 
