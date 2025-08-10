@@ -16,8 +16,8 @@ class ModelScopeImageProvider(ImageProviderBase):
         config = config_service.app_config.get('modelscope', {})
         
         api_key = str(config.get("api_key", ""))
-        # 使用官方文档中的标准API端点
-        base_url = str(config.get("base_url", "https://api-inference.modelscope.cn/v1/images/generations"))
+        # ModelScope 使用 OpenAI 兼容的端点格式
+        base_url = str(config.get("url", "https://api-inference.modelscope.cn/v1/images/generations"))
         
         if not api_key:
             raise ValueError("ModelScope API key is not configured")
@@ -48,37 +48,43 @@ class ModelScopeImageProvider(ImageProviderBase):
         return aspect_ratio_map.get(aspect_ratio, "1024x1024")
 
     async def _make_request(self, url: str, headers: Dict[str, str], data: Dict[str, Any]) -> Dict[str, Any]:
-        """Send HTTP request and handle response"""
+        """Send HTTP request according to official ModelScope API format"""
         async with HttpClient.create_aiohttp() as session:
-            print(f'🔥 ModelScope API request: {url}, model: {data["model"]}, prompt: {data["prompt"]}')
+            print(f'🔥 ModelScope API request: {url}')
+            print(f'🔥 Request data: {json.dumps(data, ensure_ascii=False, indent=2)}')
             
+            # Use the exact format from official docs
             json_data = json.dumps(data, ensure_ascii=False).encode('utf-8')
             
             async with session.post(url, headers=headers, data=json_data) as response:
+                response_text = await response.text()
+                print(f'🔥 ModelScope API response status: {response.status}')
+                print(f'🔥 ModelScope API response: {response_text}')
+                
                 if response.status != 200:
-                    error_text = await response.text()
-                    error_msg = f"HTTP {response.status}: {error_text}"
+                    error_msg = f"HTTP {response.status}: {response_text}"
                     print(f'🔥 ModelScope API error: {error_msg}')
                     raise Exception(f'Image generation failed: {error_msg}')
 
-                json_response = await response.json()
-                print('🔥 ModelScope API response:', json_response)
-                
-                return json_response
+                try:
+                    json_response = json.loads(response_text)
+                    return json_response
+                except json.JSONDecodeError:
+                    raise Exception(f'Invalid JSON response: {response_text}')
 
     async def _process_response(
         self, 
         response: Dict[str, Any], 
         metadata: Optional[Dict[str, Any]] = None
     ) -> tuple[str, int, int, str]:
-        """Process ModelScope response and save image"""
+        """Process ModelScope response according to official format"""
         try:
-            # ModelScope returns images array with url field
+            # Official ModelScope format: {"images": [{"url": "..."}]}
             images = response.get('images', [])
             if not images:
                 raise Exception('No images found in ModelScope response')
             
-            # Get first image URL
+            # Get first image URL according to official docs
             image_url = images[0].get('url')
             if not image_url:
                 raise Exception('No image URL found in ModelScope response')
@@ -128,14 +134,14 @@ class ModelScopeImageProvider(ImageProviderBase):
             api_config = self._get_api_config()
             headers = self._build_headers(api_config["api_key"])
             
-            # Build request data based on ModelScope API format
+            # Build request data according to official ModelScope API format
             data = {
                 "model": model,
                 "prompt": prompt,
                 "size": self._convert_aspect_ratio_to_size(aspect_ratio)
             }
             
-            # Add optional parameters if provided
+            # Add optional parameters according to official docs
             if kwargs.get("negative_prompt"):
                 data["negative_prompt"] = kwargs["negative_prompt"]
             if kwargs.get("seed") is not None:
@@ -143,7 +149,7 @@ class ModelScopeImageProvider(ImageProviderBase):
             if kwargs.get("steps") is not None:
                 data["steps"] = int(kwargs["steps"])
             if kwargs.get("guidance") is not None:
-                data["guidance"] = float(kwargs["guidance"])
+                data["guidance"] = float(kwargs["guidance"])  # 使用官方文档中的 guidance 参数名
                 
             # Note: ModelScope text-to-image doesn't support input_images
             if input_images:

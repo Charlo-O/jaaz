@@ -52,6 +52,7 @@ from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_j
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
 from tools.generate_image_by_midjourney import generate_image_by_midjourney
 from tools.generate_image_by_modelscope import generate_image_by_modelscope
+from tools.generate_image_by_qwen_image import generate_image_by_qwen_image
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -196,6 +197,12 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "modelscope",
         "tool_function": generate_image_by_modelscope,
+    },
+    "generate_image_by_qwen_image": {
+        "display_name": "Qwen-Image (魔搭社区)",
+        "type": "image",
+        "provider": "modelscope",
+        "tool_function": generate_image_by_qwen_image,
     },
 }
 
