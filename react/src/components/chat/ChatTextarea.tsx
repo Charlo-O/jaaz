@@ -30,6 +30,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import ModelSelectorV2 from './ModelSelectorV2'
+import ModelSelectorV3 from './ModelSelectorV3'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBalance } from '@/hooks/use-balance'
 import { BASE_API_URL } from '@/constants'
@@ -181,7 +182,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       toast.warning(t('chat:textarea.selectTool'))
     }
 
-    let value: MessageContent[] | string = prompt
+    let text_content: MessageContent[] | string = prompt
     if (prompt.length === 0 || prompt.trim() === '') {
       toast.error(t('chat:textarea.enterPrompt'))
       return
@@ -197,45 +198,47 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     }
 
     if (additionalInfo) {
-      value = value + '\n\n' + additionalInfo
+      text_content = text_content + '\n\n' + additionalInfo
     }
 
     if (images.length > 0) {
-      images.forEach((image) => {
-        value += `\n\n ![Attached image - width: ${image.width} height: ${image.height} filename: ${image.file_id}](/api/file/${image.file_id})`
+      text_content += `\n\n<input_images count="${images.length}">`
+      images.forEach((image, index) => {
+        text_content += `\n<image index="${index + 1}" file_id="${image.file_id}" width="${image.width}" height="${image.height}" />`
       })
-
-      // Fetch images as base64
-      const imagePromises = images.map(async (image) => {
-        const response = await fetch(`/api/file/${image.file_id}`)
-        const blob = await response.blob()
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.readAsDataURL(blob)
-        })
-      })
-
-      const base64Images = await Promise.all(imagePromises)
-
-      value = [
-        {
-          type: 'text',
-          text: value as string,
-        },
-        ...images.map((image, index) => ({
-          type: 'image_url',
-          image_url: {
-            url: base64Images[index],
-          },
-        })),
-      ] as MessageContent[]
+      text_content += `\n</input_images>`
     }
+
+    // Fetch images as base64
+    const imagePromises = images.map(async (image) => {
+      const response = await fetch(`/api/file/${image.file_id}`)
+      const blob = await response.blob()
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(blob)
+      })
+    })
+
+    const base64Images = await Promise.all(imagePromises)
+
+    const final_content = [
+      {
+        type: 'text',
+        text: text_content as string,
+      },
+      ...images.map((image, index) => ({
+        type: 'image_url',
+        image_url: {
+          url: base64Images[index],
+        },
+      })),
+    ] as MessageContent[]
 
     const newMessage = messages.concat([
       {
         role: 'user',
-        content: value,
+        content: final_content,
       },
     ])
 
@@ -477,7 +480,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <PlusIcon className="size-4" />
           </Button>
 
-          <ModelSelectorV2 />
+          <ModelSelectorV3 />
 
           {/* Aspect Ratio Selector */}
           <DropdownMenu>

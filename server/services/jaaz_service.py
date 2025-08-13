@@ -367,6 +367,97 @@ class JaazService:
             f"✅ Seedance video generated successfully: {result.get('result_url')}")
         return result
 
+    async def create_midjourney_task(
+        self,
+        prompt: str,
+        model: str = "midjourney",
+        **kwargs: Any
+    ) -> str:
+        """
+        创建云端 Midjourney 图像生成任务
+
+        Args:
+            prompt: 图像生成提示词
+            model: 图像生成模型（默认为 midjourney）
+            **kwargs: 其他参数（如 mode 等）
+
+        Returns:
+            str: 任务 ID
+
+        Raises:
+            Exception: 当任务创建失败时抛出异常
+        """
+        async with HttpClient.create_aiohttp() as session:
+            payload = {
+                "prompt": prompt,
+                "model": model,
+                **kwargs
+            }
+
+            async with session.post(
+                f"{self.api_url}/image/midjourney/generation",
+                headers=self._build_headers(),
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=60.0)
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    task_id = data.get('task_id', '')
+                    if task_id:
+                        print(f"✅ Midjourney task created: {task_id}")
+                        return task_id
+                    else:
+                        raise Exception("No task_id in response")
+                else:
+                    error_text = await response.text()
+                    raise Exception(f"Failed to create Midjourney task: HTTP {response.status} - {error_text}")
+
+    async def generate_image_by_midjourney(
+        self,
+        prompt: str,
+        model: str = "midjourney",
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        使用 Midjourney 生成图像的完整流程
+
+        Args:
+            prompt: 图像生成提示词
+            model: 图像生成模型（默认为 midjourney）
+            **kwargs: 其他参数（如 mode 等）
+
+        Returns:
+            Dict[str, Any]: 包含 result_url 的任务结果
+
+        Raises:
+            Exception: 当图像生成失败时抛出异常
+        """
+        # 1. 创建 Midjourney 图像生成任务
+        task_id = await self.create_midjourney_task(
+            prompt=prompt,
+            model=model,
+            **kwargs
+        )
+
+        if not task_id:
+            raise Exception("Failed to create Midjourney task")
+
+        # 2. 等待任务完成
+        task_result = await self.poll_for_task_completion(task_id, max_attempts=150, interval=2.0)
+        print(f"🎨 Midjourney task result: {task_result}")
+        if not task_result:
+            raise Exception("Midjourney image generation failed")
+
+        if task_result.get('error'):
+            raise Exception(f"Midjourney image generation failed: {task_result['error']}")
+
+        if not task_result.get('result'):
+            raise Exception("No result found in Midjourney image generation response")
+
+        result = task_result.get('result')
+        print(f"✅ Midjourney image generated successfully: {result}")
+        return result or {}
+
     def is_configured(self) -> bool:
         """
         检查服务是否已正确配置

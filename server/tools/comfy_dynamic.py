@@ -103,7 +103,6 @@ def build_tool(wf: Dict[str, Any]) -> BaseTool:
     input_schema = _build_input_schema(wf)
 
     @tool(
-        wf["name"],
         description=wf.get("description") or f"Run ComfyUI workflow {wf['id']}",
         args_schema=input_schema,
     )
@@ -305,4 +304,7 @@ def build_tool(wf: Dict[str, Any]) -> BaseTool:
             await send_to_websocket(session_id, {"type": "error", "error": str(e)})
             return f"image generation failed: {str(e)}"
 
+    # Set the tool name manually
+    _run.name = wf["name"]
+    
     return _run

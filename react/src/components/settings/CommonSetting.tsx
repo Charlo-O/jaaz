@@ -5,6 +5,7 @@ import { PROVIDER_NAME_MAPPING } from '@/constants'
 import { LLMConfig } from '@/types/types'
 import { useTranslation } from 'react-i18next'
 import AddModelsList from './AddModelsList'
+import ModelScopeModelsList from './ModelScopeModelsList'
 import { Trash2 } from 'lucide-react'
 
 interface CommonSettingProps {
@@ -45,7 +46,7 @@ export default function CommonSetting({
   }
 
   const handleModelsChange = (
-    models: Record<string, { type?: 'text' | 'image' | 'video' }>
+    models: Record<string, { type?: 'text' | 'image' | 'video'; description?: string }>
   ) => {
     onConfigChange(providerKey, {
       ...config,
@@ -127,11 +128,19 @@ export default function CommonSetting({
       {/* Models Configuration - only for custom providers */}
       {providerKey !== 'ollama' && (
         <div className="space-y-2">
-          <AddModelsList
-            models={config.models || {}}
-            onChange={handleModelsChange}
-            label={t('settings:models.title')}
-          />
+          {providerKey === 'modelscope' ? (
+            <ModelScopeModelsList
+              models={config.models || {}}
+              onChange={handleModelsChange}
+              label="魔搭模型配置"
+            />
+          ) : (
+            <AddModelsList
+              models={config.models || {}}
+              onChange={handleModelsChange}
+              label={t('settings:models.title')}
+            />
+          )}
         </div>
       )}
 

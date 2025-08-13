@@ -30,11 +30,11 @@ const MessageImage = ({ content }: MessageImageProps) => {
   )?.id
 
   return (
-    <div>
+    <div className="w-full max-w-[140px]">
       <PhotoView src={content.image_url.url}>
-        <div className="relative">
+        <div className="relative group cursor-pointer">
           <img
-            className="hover:scale-105 transition-transform duration-300"
+            className="w-full h-auto max-h-[140px] object-cover rounded-md border border-border hover:scale-105 transition-transform duration-300"
             src={content.image_url.url}
             alt="Image"
           />
@@ -42,7 +42,8 @@ const MessageImage = ({ content }: MessageImageProps) => {
           {id && (
             <Button
               variant="secondary"
-              className="group-hover:opacity-100 opacity-0 absolute top-2 right-2 z-10"
+              size="sm"
+              className="group-hover:opacity-100 opacity-0 absolute top-2 right-2 z-10 text-xs"
               onClick={(e) => {
                 e.stopPropagation()
                 handleImagePositioning(id)

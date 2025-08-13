@@ -13,6 +13,7 @@ import { LLMConfig } from '@/types/types'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AddModelsList from './AddModelsList'
+import ModelScopeModelsList from './ModelScopeModelsList'
 import { toast } from 'sonner'
 
 interface AddProviderDialogProps {
@@ -64,18 +65,6 @@ const PROVIDER_OPTIONS = [
       models: {},
       api_key: '',
       max_tokens: 8192,
-    },
-  },
-  {
-    value: 'midjourney',
-    label: 'Midjourney',
-    mediaOnly: true,
-    data: {
-      apiUrl: 'http://localhost:8080',
-      models: {
-        'midjourney': { type: 'image' },
-      },
-      api_key: '',
     },
   },
   {
@@ -142,6 +131,16 @@ const PROVIDER_OPTIONS = [
     label: '月之暗面 (Kimi)',
     data: { apiUrl: 'https://api.moonshot.cn/v1/' },
   },
+  {
+    value: 'modelscope',
+    label: 'ModelScope (魔搭)',
+    mediaOnly: true,
+    data: {
+      apiUrl: 'https://api-inference.modelscope.cn/v1',
+      models: {},
+      api_key: '',
+    },
+  },
 ]
 
 export default function AddProviderDialog({
@@ -154,7 +153,7 @@ export default function AddProviderDialog({
   const [apiUrl, setApiUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [models, setModels] = useState<
-    Record<string, { type?: 'text' | 'image' | 'video' }>
+    Record<string, { type?: 'text' | 'image' | 'video'; description?: string }>
   >({})
 
   const isMediaOnlyProvider =
@@ -265,6 +264,15 @@ export default function AddProviderDialog({
               models={models}
               onChange={setModels}
               label={t('settings:models.title')}
+            />
+          )}
+
+          {/* ModelScope Models with Description */}
+          {providerName === 'modelscope' && (
+            <ModelScopeModelsList
+              models={models}
+              onChange={setModels}
+              label="魔搭模型配置"
             />
           )}
         </div>

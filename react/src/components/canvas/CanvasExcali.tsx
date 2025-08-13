@@ -128,6 +128,34 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   )
   const { theme } = useTheme()
 
+  // 添加自定义类名以便应用我们的CSS修复
+  const excalidrawClassName = `excalidraw-custom ${theme === 'dark' ? 'excalidraw-dark-fix' : ''}`
+  
+  // 在深色模式下使用自定义主题设置，避免使用默认的滤镜
+  // 这样可以确保颜色在深色模式下正确显示
+  const customTheme = theme === 'dark' ? 'light' : theme
+  
+  // 在组件挂载和主题变化时设置深色模式下的背景色
+  useEffect(() => {
+    if (excalidrawAPI && theme === 'dark') {
+      // 设置深色背景，但保持light主题以避免颜色反转
+      excalidrawAPI.updateScene({
+        appState: {
+          viewBackgroundColor: '#121212',
+          gridColor: 'rgba(255, 255, 255, 0.1)',
+        }
+      })
+    } else if (excalidrawAPI && theme === 'light') {
+      // 恢复浅色背景
+      excalidrawAPI.updateScene({
+        appState: {
+          viewBackgroundColor: '#ffffff',
+          gridColor: 'rgba(0, 0, 0, 0.1)',
+        }
+      })
+    }
+  }, [excalidrawAPI, theme])
+
   const addImageToExcalidraw = useCallback(
     async (imageElement: ExcalidrawImageElement, file: BinaryFileData) => {
       if (!excalidrawAPI) return
@@ -371,8 +399,9 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
   return (
     <Excalidraw
-      theme={theme as Theme}
+      theme={customTheme as Theme}
       langCode={i18n.language}
+      className={excalidrawClassName}
       excalidrawAPI={(api) => {
         setExcalidrawAPI(api)
       }}

@@ -22,15 +22,19 @@ const MessageRegular: React.FC<MessageRegularProps> = ({
   if (!isText) return <MessageImage content={content} />
 
   return (
-    <div
-      className={`${
-        message.role === 'user'
-          ? 'bg-primary text-primary-foreground rounded-xl rounded-br-md px-4 py-3 text-left ml-auto'
-          : 'text-gray-800 dark:text-gray-200 text-left items-start'
-      } flex flex-col`}
-    >
-      <Markdown>{markdownText}</Markdown>
-    </div>
+    <>
+      {message.role === 'user' ? (
+        <div className="flex justify-end mb-4">
+          <div className="bg-primary text-primary-foreground rounded-xl rounded-br-md px-4 py-3 text-left max-w-[300px] w-fit flex flex-col">
+            <Markdown>{markdownText}</Markdown>
+          </div>
+        </div>
+      ) : (
+        <div className="text-gray-800 dark:text-gray-200 text-left items-start mb-4 flex flex-col">
+          <Markdown>{markdownText}</Markdown>
+        </div>
+      )}
+    </>
   )
 }
 

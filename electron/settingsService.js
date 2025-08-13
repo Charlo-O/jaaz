@@ -128,8 +128,15 @@ class SettingsService {
       // 设置 Electron session 代理
       await this.setSessionsProxy({ mode: 'system' })
 
-      // 获取代理 URL 并设置环境变量
-      const url = currentProxy.proxyUrl.toLowerCase()
+      // 获取代理 URL 并检查协议
+      let url = currentProxy.proxyUrl.toLowerCase()
+
+      // 将 SOCKS 协议转换为 SOCKS5（httpx 支持 SOCKS5）
+      if (url.startsWith('socks://')) {
+        console.log('Converting SOCKS proxy to SOCKS5 for httpx compatibility')
+        url = url.replace('socks://', 'socks5://')
+      }
+
       this.setEnvironment(url)
 
       return {

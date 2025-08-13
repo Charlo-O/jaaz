@@ -40,9 +40,9 @@ export const PROVIDER_NAME_MAPPING: {
     name: 'ComfyUI',
     icon: 'https://framerusercontent.com/images/3cNQMWKzIhIrQ5KErBm7dSmbd2w.png',
   },
-  midjourney: {
-    name: 'Midjourney',
-    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/midjourney/midjourney-original.svg',
+  modelscope: {
+    name: 'ModelScope',
+    icon: 'https://modelscope.cn/favicon.ico',
   },
 }
 

@@ -20,7 +20,6 @@ class ProviderConfig(TypedDict, total=False):
     max_tokens: int
     models: Dict[str, ModelConfig]
     is_custom: Optional[bool]
-    base_url: str
 
 
 AppConfig = Dict[str, ProviderConfig]
@@ -59,17 +58,6 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
         'url': 'https://api.openai.com/v1/',
         'api_key': '',
         'max_tokens': 8192,
-    },
-    'modelscope': {
-        'models': {
-            'MAILAND/majicflus_v1': {'type': 'image'},  # 默认生图模型（已验证可用）
-            'AI-ModelScope/stable-diffusion-v1-5': {'type': 'image'},
-            'AI-ModelScope/stable-diffusion-xl-base-1.0': {'type': 'image'},
-            'Qwen/Qwen-Image': {'type': 'image'},
-        },
-        'url': 'https://api-inference.modelscope.cn/v1/images/generations',
-        'api_key': '',
-        'base_url': 'https://api-inference.modelscope.cn/v1/images/generations',
     },
 
 }

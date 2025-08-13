@@ -50,9 +50,8 @@ from tools.generate_image_by_recraft_v3_replicate import (
 )
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
-from tools.generate_image_by_midjourney import generate_image_by_midjourney
-from tools.generate_image_by_modelscope import generate_image_by_modelscope
-from tools.generate_image_by_qwen_image import generate_image_by_qwen_image
+from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
+# ModelScope tools are now dynamically registered through configuration
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -99,6 +98,14 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "jaaz",
         "tool_function": generate_image_by_flux_kontext_max,
     },
+    "generate_image_by_midjourney_jaaz": {
+        "display_name": "Midjourney",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_midjourney_jaaz,
+    },
+    # ModelScope tools are now dynamically registered through user configuration
+    # No default ModelScope tools - users must add them via settings
     "generate_image_by_doubao_seedream_3_jaaz": {
         "display_name": "Doubao Seedream 3",
         "type": "image",
@@ -186,24 +193,6 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "replicate",
         "tool_function": generate_image_by_flux_kontext_max_replicate,
     },
-    "generate_image_by_midjourney": {
-        "display_name": "Midjourney",
-        "type": "image",
-        "provider": "midjourney",  
-        "tool_function": generate_image_by_midjourney,
-    },
-    "generate_image_by_modelscope": {
-        "display_name": "ModelScope Image Generator",
-        "type": "image",
-        "provider": "modelscope",
-        "tool_function": generate_image_by_modelscope,
-    },
-    "generate_image_by_qwen_image": {
-        "display_name": "Qwen-Image (魔搭社区)",
-        "type": "image",
-        "provider": "modelscope",
-        "tool_function": generate_image_by_qwen_image,
-    },
 }
 
 
@@ -235,21 +224,64 @@ class ToolService:
         self.clear_tools()
         try:
             for provider_name, provider_config in config_service.app_config.items():
-                # register all tools by api provider with api key OR for special providers (comfyui, midjourney)
-                has_api_key = provider_config.get("api_key", "")
-                has_url = provider_config.get("url", "")
-                is_special_provider = provider_name in ['comfyui', 'midjourney']
-                
-                if has_api_key or (is_special_provider and has_url):
+                # register all tools by api provider with api key
+                if provider_config.get("api_key", ""):
+                    # Register static tools
                     for tool_id, tool_info in TOOL_MAPPING.items():
                         if tool_info.get("provider") == provider_name:
                             self.register_tool(tool_id, tool_info)
+
+                    # Register dynamic image models for supported providers
+                    await self._register_dynamic_image_models(
+                        provider_name, provider_config
+                    )
+
             # Register comfyui workflow tools
             if config_service.app_config.get("comfyui", {}).get("url", ""):
                 await register_comfy_tools()
+
+            # Register modelscope dynamic tools
+            if config_service.app_config.get("modelscope", {}).get("api_key", ""):
+                await register_modelscope_tools()
         except Exception as e:
             print(f"❌ Failed to initialize tool service: {e}")
             traceback.print_stack()
+
+    async def _register_dynamic_image_models(
+        self, provider_name: str, provider_config: dict
+    ):
+        """Register dynamic image generation tools based on user-configured models"""
+        try:
+            # Skip ModelScope - it has its own dedicated registration logic
+            if provider_name == "modelscope":
+                return
+                
+            models = provider_config.get("models", {})
+            for model_id, model_info in models.items():
+                if model_info.get("type") == "image":
+                    # Create dynamic tool ID
+                    safe_model_name = (
+                        model_id.replace("/", "_").replace("-", "_").lower()
+                    )
+                    tool_id = f"generate_image_by_{provider_name}_{safe_model_name}"
+
+                    # Skip if tool already exists (avoid duplicates)
+                    if tool_id in self.tools:
+                        continue
+
+                    # Create display name
+                    display_name = f"{provider_name.title()} {model_id}"
+
+                    # For other providers (not ModelScope), add additional logic here if needed
+                    print(f"ℹ️ Skipping dynamic registration for {provider_name} - not implemented yet")
+
+        except Exception as e:
+            print(
+                f"❌ Failed to register dynamic image models for {provider_name}: {e}"
+            )
+            import traceback
+
+            traceback.print_exc()
 
     def get_tool(self, tool_name: str) -> BaseTool | None:
         tool_info = self.tools.get(tool_name)
@@ -306,3 +338,41 @@ async def register_comfy_tools() -> Dict[str, BaseTool]:
             print(traceback.print_stack())
 
     return dynamic_comfy_tools
+
+
+async def register_modelscope_tools() -> Dict[str, BaseTool]:
+    """
+    Register ModelScope models as dynamic tools based on configuration.
+    Run inside the current event loop.
+    """
+    dynamic_modelscope_tools: Dict[str, BaseTool] = {}
+
+    try:
+        # Import here to avoid circular imports
+        from tools.modelscope_dynamic import (
+            register_modelscope_tools as _register_modelscope_tools,
+        )
+
+        dynamic_modelscope_tools = await _register_modelscope_tools()
+
+        # Register tools with tool service
+        for tool_name, tool_fn in dynamic_modelscope_tools.items():
+            tool_service.register_tool(
+                tool_name,
+                {
+                    "provider": "modelscope",
+                    "tool_function": tool_fn,
+                    "display_name": tool_fn.name,
+                    "type": "image",
+                },
+            )
+
+        print(
+            f"[tool_service] Registered {len(dynamic_modelscope_tools)} ModelScope tools"
+        )
+
+    except Exception as exc:
+        print(f"[tool_service] Failed to register ModelScope tools: {exc}")
+        traceback.print_exc()
+
+    return dynamic_modelscope_tools

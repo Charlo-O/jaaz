@@ -116,7 +116,7 @@ export default function Editor({ knowledgeID }: { knowledgeID: string }) {
   useEffect(() => {
     const toolbar = document.querySelector('.my-classname')
     if (toolbar) {
-      ; (toolbar as HTMLElement).style.padding = '0px'
+      ;(toolbar as HTMLElement).style.padding = '0px'
     }
 
     const handleSelectionChange = () => {

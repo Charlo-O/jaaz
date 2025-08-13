@@ -95,7 +95,8 @@ async def create_jaaz_response(messages: List[Dict[str, Any]], session_id: str =
 
         # 初始化变量
         filename = ""
-        image_url = result['result_url']
+        result_url = result['result_url']
+        image_url = result_url
 
         # 保存图片到画布
         if session_id and canvas_id:
@@ -123,12 +124,7 @@ async def create_jaaz_response(messages: List[Dict[str, Any]], session_id: str =
 
         return {
             'role': 'assistant',
-            'content': [
-                {
-                    'type': 'text',
-                    'text': f'✨ Magic Success!!! ![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})'
-                },
-            ]
+            'content': f'✨ Magic Success!!!\n\nResult url: {result_url}\n\n![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})'
         }
 
     except (asyncio.TimeoutError, Exception) as e:

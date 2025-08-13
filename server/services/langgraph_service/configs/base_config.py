@@ -40,7 +40,8 @@ def create_handoff_tool(
     if description is None:
         description = f"Ask agent '{agent_name}' for help"
 
-    @tool(name, description=description+"""
+    @tool(
+        description=description+"""
     \nIMPORTANT RULES:
             1. You MUST complete the other tool calls and wait for their result BEFORE attempting to transfer to another agent
             2. Do NOT call this handoff tool with other tools simultaneously
@@ -64,6 +65,9 @@ def create_handoff_tool(
 
     setattr(handoff_to_agent, 'metadata', {
             METADATA_KEY_HANDOFF_DESTINATION: agent_name})
+    
+    # Set the tool name manually
+    handoff_to_agent.name = name
 
     return handoff_to_agent
 

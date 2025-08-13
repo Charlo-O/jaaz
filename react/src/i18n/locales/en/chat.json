@@ -37,5 +37,14 @@
     "creating": "Creating...",
     "success": "Template created successfully!",
     "error": "Failed to create template"
+  },
+  "modelSelector": {
+    "title": "Model",
+    "auto": "Auto",
+    "tabs": {
+      "image": "Image",
+      "video": "Video",
+      "text": "Text"
+    }
   }
 }

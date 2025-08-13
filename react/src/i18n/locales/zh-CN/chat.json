@@ -44,5 +44,14 @@
     "cancelled": "已取消",
     "confirm": "确认执行",
     "cancel": "取消"
+  },
+  "modelSelector": {
+    "title": "模型",
+    "auto": "自动",
+    "tabs": {
+      "image": "图像",
+      "video": "视频",
+      "text": "文本"
+    }
   }
 }
