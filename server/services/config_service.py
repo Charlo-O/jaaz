@@ -3,7 +3,7 @@ import os
 import traceback
 import aiofiles
 import toml
-from typing import Dict, TypedDict, Literal, Optional
+from typing import Dict, TypedDict, Literal, Optional, cast
 
 # 定义配置文件的类型结构
 
@@ -125,14 +125,41 @@ class ConfigService:
                 if provider not in DEFAULT_PROVIDERS_CONFIG:
                     provider_config['is_custom'] = True
                 self.app_config[provider] = provider_config
-                # image/video models are hardcoded in the default provider config
-                provider_models = DEFAULT_PROVIDERS_CONFIG.get(
-                    provider, {}).get('models', {})
+
+                # 合并默认模型与用户新增模型：不再限制只能新增 text 类型
+                # 生图类提供商（新增未指定 type 时默认按 image 处理）
+                image_first_providers = {
+                    'replicate', 'midjourney', 'wavespeed', 'modelscope'
+                }
+
+                # 从默认配置复制一份，避免引用同一对象
+                provider_models: Dict[str, ModelConfig] = dict(
+                    DEFAULT_PROVIDERS_CONFIG.get(provider, {}).get('models', {})
+                )
+
                 for model_name, model_config in provider_config.get('models', {}).items():
-                    # Only text model can be self added
-                    if model_config.get('type') == 'text' and model_name not in provider_models:
-                        provider_models[model_name] = model_config
-                        provider_models[model_name]['is_custom'] = True
+                    # 计算默认类型
+                    default_type = 'image' if provider in image_first_providers else 'text'
+                    # 兼容旧配置：如果是生图提供商但被存成了 text，则强制改为 image
+                    raw_type = model_config.get('type')
+                    if provider in image_first_providers and raw_type == 'text':
+                        raw_type = 'image'
+                    final_type = raw_type or default_type
+
+                    if model_name not in provider_models:
+                        provider_models[model_name] = cast(ModelConfig, {
+                            'type': final_type,  # type: ignore[typeddict-item]
+                            'is_custom': True,
+                        })
+                    else:
+                        # 保留已有信息，同时允许覆盖类型
+                        existing = provider_models.get(model_name, {})
+                        merged = {**existing, 'type': final_type}  # type: ignore[typeddict-item]
+                        # 标记是否为自定义（非默认列表）
+                        if model_name not in DEFAULT_PROVIDERS_CONFIG.get(provider, {}).get('models', {}):
+                            merged['is_custom'] = True  # type: ignore[index]
+                        provider_models[model_name] = cast(ModelConfig, merged)
+
                 self.app_config[provider]['models'] = provider_models
 
             # 确保 jaaz URL 始终正确

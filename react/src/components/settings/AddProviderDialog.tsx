@@ -35,6 +35,21 @@ const PROVIDER_OPTIONS = [
     },
   },
   {
+    value: 'modelscope',
+    label: 'ModelScope (魔搭)',
+    mediaOnly: true,
+    data: {
+      apiUrl: 'https://api-inference.modelscope.cn/v1/images/generations',
+      models: {
+        'MAILAND/majicflus_v1': { type: 'image' },
+        'AI-ModelScope/stable-diffusion-v1-5': { type: 'image' },
+        'AI-ModelScope/stable-diffusion-xl-base-1.0': { type: 'image' },
+        'Qwen/Qwen-Image': { type: 'image' },
+      },
+      api_key: '',
+    },
+  },
+  {
     value: 'OpenRouter',
     label: 'OpenRouter',
     data: {
@@ -127,8 +142,8 @@ const PROVIDER_OPTIONS = [
     data: { apiUrl: 'https://open.bigmodel.cn/api/paas/v4/' },
   },
   {
-    value: '月之暗面',
-    label: '月之暗面 (Kimi)',
+    value: 'moonshot',
+    label: 'Moonshot (Kimi)',
     data: { apiUrl: 'https://api.moonshot.cn/v1/' },
   },
   {
@@ -156,8 +171,11 @@ export default function AddProviderDialog({
     Record<string, { type?: 'text' | 'image' | 'video'; description?: string }>
   >({})
 
-  const isMediaOnlyProvider =
-    PROVIDER_OPTIONS.find((p) => p.value === providerName)?.mediaOnly ?? false
+  const selectedProvider = PROVIDER_OPTIONS.find(
+    (p) => p.value === providerName
+  )
+  const isMediaOnlyProvider = selectedProvider?.mediaOnly ?? false
+  const isModelScope = selectedProvider?.value === 'modelscope'
 
   // Handle data change when provider is selected
   const handleProviderDataChange = (data: any) => {
@@ -259,11 +277,25 @@ export default function AddProviderDialog({
           </div>
 
           {/* Models */}
-          {!isMediaOnlyProvider && (
+          {(!isMediaOnlyProvider || isModelScope) && (
             <AddModelsList
               models={models}
               onChange={setModels}
               label={t('settings:models.title')}
+              forceType={isModelScope ? 'image' : undefined}
+              suggestions={
+                isModelScope
+                  ? [
+                    'MAILAND/majicflus_v1',
+                    'AI-ModelScope/stable-diffusion-v1-5',
+                    'AI-ModelScope/stable-diffusion-xl-base-1.0',
+                    'Qwen/Qwen-Image',
+                  ]
+                  : []
+              }
+              placeholder={
+                isModelScope ? 'MAILAND/majicflus_v1 等魔搭模型' : undefined
+              }
             />
           )}
 

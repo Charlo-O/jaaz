@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter
+from fastapi import APIRouter  # type: ignore
 import requests
 import httpx
 from models.tool_model import ToolInfoJson
@@ -10,7 +10,7 @@ from utils.http_client import HttpClient
 # services
 from models.config_model import ModelInfo
 from typing import List
-from services.tool_service import TOOL_MAPPING
+# from services.tool_service import TOOL_MAPPING
 
 router = APIRouter(prefix="/api")
 
@@ -83,14 +83,13 @@ async def get_models() -> list[ModelInfo]:
         for model_name in models:
             model = models[model_name]
             model_type = model.get('type', 'text')
-            # Only return text models
-            if model_type == 'text':
-                res.append({
-                    'provider': provider,
-                    'model': model_name,
-                    'url': provider_url,
-                    'type': model_type
-                })
+            # 返回所有模型（text/image/video），方便前端自行区分
+            res.append({
+                'provider': provider,
+                'model': model_name,
+                'url': provider_url,
+                'type': model_type
+            })
     return res
 
 

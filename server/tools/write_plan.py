@@ -1,5 +1,3 @@
-from asyncio import sleep
-import asyncio
 from pydantic import BaseModel, Field
 from typing import Optional, Annotated
 from langchain_core.tools import tool
@@ -34,4 +32,5 @@ def write_plan_tool(
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> str:
     print("write_plan_tool")
-    return "<hide_in_user_ui> Plan made. Now you can start executing the plan, or handoff the task to the suitable agent who specializes in the steps of the plan.</hide_from_user>"
+    # 统一隐藏标记，避免前端解析异常
+    return "<hide_in_user_ui>Plan made. Now you can start executing the plan, or handoff the task to the suitable agent who specializes in the steps of the plan.</hide_in_user_ui>"

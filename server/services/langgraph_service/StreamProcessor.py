@@ -1,6 +1,6 @@
 # type: ignore[import]
 import traceback
-from typing import Optional, List, Dict, Any, Callable, Awaitable
+from typing import Optional, List, Dict, Any, Callable, Awaitable, Set
 from langchain_core.messages import AIMessageChunk, ToolCall, convert_to_openai_messages, ToolMessage
 from langgraph.graph import StateGraph
 import json
@@ -16,6 +16,8 @@ class StreamProcessor:
         self.tool_calls: List[ToolCall] = []
         self.last_saved_message_index = 0
         self.last_streaming_tool_call_id: Optional[str] = None
+        # 记录已发送过的工具调用ID，避免重复上报
+        self.emitted_tool_call_ids: Set[str] = set()
 
     async def process_stream(self, swarm: StateGraph, messages: List[Dict[str, Any]], context: Dict[str, Any]) -> None:
         """处理整个流式响应
@@ -126,6 +128,16 @@ class StreamProcessor:
 
         for tool_call in self.tool_calls:
             tool_name = tool_call.get('name')
+            tool_id = tool_call.get('id')
+
+            # 跳过无效名称或无ID的调用
+            if not tool_name or not tool_id:
+                continue
+
+            # 去重：同一个工具调用ID只上报一次
+            if tool_id in self.emitted_tool_call_ids:
+                continue
+            self.emitted_tool_call_ids.add(tool_id)
 
             # 检查是否需要确认
             if tool_name in TOOLS_REQUIRING_CONFIRMATION:
@@ -136,7 +148,7 @@ class StreamProcessor:
             else:
                 await self.websocket_service(self.session_id, {
                     'type': 'tool_call',
-                    'id': tool_call.get('id'),
+                    'id': tool_id,
                     'name': tool_name,
                     'arguments': '{}'
                 })

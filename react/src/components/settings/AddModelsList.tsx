@@ -16,24 +16,35 @@ interface ModelsListProps {
     models: Record<string, { type?: 'text' | 'image' | 'video' }>
   ) => void
   label?: string
+  // 强制所有新增模型为某一类型（例如 ModelScope 仅支持 image）
+  forceType?: 'text' | 'image' | 'video'
+  // 输入框联想候选
+  suggestions?: string[]
+  // 自定义占位符
+  placeholder?: string
 }
 
 export default function AddModelsList({
   models,
   onChange,
   label = 'Models',
+  forceType,
+  suggestions = [],
+  placeholder,
 }: ModelsListProps) {
   const [modelItems, setModelItems] = useState<ModelItem[]>([])
   const [newModelName, setNewModelName] = useState('')
   const [openAddModelDialog, setOpenAddModelDialog] = useState(false)
+  const [isOpenSuggest, setIsOpenSuggest] = useState(false)
 
   useEffect(() => {
-    const modelItems = Object.entries(models).map(([name, config]) => ({
+    const items = Object.entries(models).map(([name, config]) => ({
       name,
-      type: (config.type || 'text') as 'text' | 'image' | 'video',
+      // 如果传入 forceType，则以该类型覆盖
+      type: (forceType || config.type || 'text') as 'text' | 'image' | 'video',
     }))
-    setModelItems(modelItems.length > 0 ? modelItems : [])
-  }, [models])
+    setModelItems(items.length > 0 ? items : [])
+  }, [models, forceType])
 
   const notifyChange = useCallback(
     (items: ModelItem[]) => {
@@ -57,12 +68,13 @@ export default function AddModelsList({
     if (newModelName) {
       const newItems = [
         ...modelItems,
-        { name: newModelName, type: 'text' as const },
+        { name: newModelName, type: (forceType || 'text') as 'text' | 'image' | 'video' },
       ]
       setModelItems(newItems)
       notifyChange(newItems)
       setNewModelName('')
       setOpenAddModelDialog(false)
+      setIsOpenSuggest(false)
     }
   }
 
@@ -89,15 +101,42 @@ export default function AddModelsList({
               <Label>Model Name</Label>
               <Input
                 type="text"
-                placeholder="openai/gpt-4o"
+                placeholder={placeholder || 'provider/model-name'}
                 value={newModelName}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleAddModel()
                   }
                 }}
-                onChange={(e) => setNewModelName(e.target.value)}
+                onFocus={() => setIsOpenSuggest(true)}
+                onBlur={() => setTimeout(() => setIsOpenSuggest(false), 120)}
+                onChange={(e) => {
+                  setNewModelName(e.target.value)
+                  setIsOpenSuggest(true)
+                }}
               />
+              {isOpenSuggest && suggestions.length > 0 && (
+                <div className="max-h-60 overflow-auto rounded-md border bg-popover shadow p-1">
+                  {suggestions
+                    .filter((s) =>
+                      s.toLowerCase().includes(newModelName.toLowerCase())
+                    )
+                    .slice(0, 50)
+                    .map((s) => (
+                      <div
+                        key={s}
+                        className="cursor-pointer rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setNewModelName(s)
+                          setIsOpenSuggest(false)
+                        }}
+                      >
+                        {s}
+                      </div>
+                    ))}
+                </div>
+              )}
               <Button type="button" onClick={handleAddModel} className="w-full">
                 Add Model
               </Button>

@@ -61,7 +61,15 @@ export default function CommonSetting({
   }
 
   const isImageProvider =
-    providerKey === 'replicate' || providerKey === 'huggingface'
+    providerKey === 'replicate' || providerKey === 'huggingface' || providerKey === 'modelscope'
+
+  // 针对魔搭(ModelScope)提供默认联想与强制类型
+  const modelscopeSuggestions = [
+    'MAILAND/majicflus_v1',
+    'AI-ModelScope/stable-diffusion-v1-5',
+    'AI-ModelScope/stable-diffusion-xl-base-1.0',
+    'Qwen/Qwen-Image',
+  ]
   const hasMaxTokens = !isImageProvider
 
   return (
@@ -128,6 +136,7 @@ export default function CommonSetting({
       {/* Models Configuration - only for custom providers */}
       {providerKey !== 'ollama' && (
         <div className="space-y-2">
+<<<<<<< Updated upstream
           {providerKey === 'modelscope' ? (
             <ModelScopeModelsList
               models={config.models || {}}
@@ -141,6 +150,16 @@ export default function CommonSetting({
               label={t('settings:models.title')}
             />
           )}
+=======
+          <AddModelsList
+            models={config.models || {}}
+            onChange={handleModelsChange}
+            label={t('settings:models.title')}
+            forceType={providerKey === 'modelscope' ? 'image' : undefined}
+            suggestions={providerKey === 'modelscope' ? modelscopeSuggestions : []}
+            placeholder={providerKey === 'modelscope' ? 'MAILAND/majicflus_v1 等魔搭模型' : undefined}
+          />
+>>>>>>> Stashed changes
         </div>
       )}
 

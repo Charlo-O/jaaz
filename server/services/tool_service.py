@@ -229,13 +229,86 @@ class ToolService:
                     # Register static tools
                     for tool_id, tool_info in TOOL_MAPPING.items():
                         if tool_info.get("provider") == provider_name:
+                            # 跳过通用的ModelScope工具，只注册动态工具
+                            if tool_id == "generate_image_by_modelscope":
+                                print(f"🚫 跳过通用ModelScope工具，使用动态工具代替")
+                                continue
                             self.register_tool(tool_id, tool_info)
 
+<<<<<<< Updated upstream
                     # Register dynamic image models for supported providers
                     await self._register_dynamic_image_models(
                         provider_name, provider_config
                     )
 
+=======
+                    # For ModelScope: register a dynamic tool for each configured model
+                    if provider_name == 'modelscope':
+                        ms_models = (provider_config.get('models') or {})
+                        for model_name in ms_models.keys():
+                            dynamic_tool_id = f"modelscope__{model_name.replace('/', '_').replace('-', '_')}"
+                            if dynamic_tool_id in self.tools:
+                                continue
+                            from typing import Annotated, Optional
+                            from pydantic import BaseModel, Field  # type: ignore
+                            from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+                            from langchain_core.runnables import RunnableConfig  # type: ignore
+
+                            class _FixedSchema(BaseModel):
+                                prompt: str = Field(description="Required. Detailed English text prompt describing the image to generate (e.g. 'A realistic illustration of a British Shorthair cat, sitting upright and gazing directly at the viewer')")
+                                model: str = Field(default=model_name, description=f"Required. ModelScope model ID: {model_name}")
+                                aspect_ratio: str = Field(default="1:1", description="Required. Image aspect ratio - must be one of: 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3")
+                                negative_prompt: Optional[str] = Field(default=None, description="Optional. Text describing what should NOT appear in the image")
+                                steps: Optional[int] = Field(default=30, description="Optional. Number of sampling steps for image generation (1-100)")
+                                guidance: Optional[float] = Field(default=3.5, description="Optional. Guidance scale for prompt adherence (1.5-20)")
+                                seed: Optional[int] = Field(default=None, description="Optional. Random seed for reproducible results")
+                                tool_call_id: Annotated[str, InjectedToolCallId]
+
+                            @tool(
+                                dynamic_tool_id,
+                                description=f"Generate image using ModelScope model: {model_name}. This tool creates AI-generated images from text prompts using the specified ModelScope model. Required parameters: prompt (descriptive text), aspect_ratio (1:1, 16:9, 9:16, etc.). Optional: negative_prompt, steps (1-100), guidance (1.5-20), seed.",
+                                args_schema=_FixedSchema,
+                            )
+                            async def _run(
+                                prompt: str,
+                                model: str,
+                                aspect_ratio: str,
+                                config: RunnableConfig,
+                                tool_call_id: Annotated[str, InjectedToolCallId],
+                                negative_prompt: Optional[str] = None,
+                                steps: Optional[int] = 30,
+                                guidance: Optional[float] = 3.5,
+                                seed: Optional[int] = None,
+                            ) -> str:
+                                print(f"🛠️ ModelScope工具被调用，tool_call_id: {tool_call_id}")
+                                print(f"🛠️ 参数: prompt={prompt}, model={model}, aspect_ratio={aspect_ratio}, steps={steps}, guidance={guidance}, seed={seed}")
+                                
+                                from tools.generate_image_by_modelscope import generate_image_by_modelscope as base
+                                
+                                return await base(
+                                    prompt=prompt,
+                                    model=model,
+                                    aspect_ratio=aspect_ratio,
+                                    config=config,
+                                    tool_call_id=tool_call_id,
+                                    negative_prompt=negative_prompt,
+                                    steps=steps,
+                                    guidance=guidance,
+                                    seed=seed,
+                                )
+
+                            print(f"🛠️ 注册ModelScope动态工具: {dynamic_tool_id}")
+                            print(f"🛠️ 工具函数类型: {type(_run)}")
+                            self.register_tool(
+                                dynamic_tool_id,
+                                {
+                                    "provider": "modelscope",
+                                    "display_name": model_name,
+                                    "type": "image",
+                                    "tool_function": _run,  # type: ignore
+                                },
+                            )
+>>>>>>> Stashed changes
             # Register comfyui workflow tools
             if config_service.app_config.get("comfyui", {}).get("url", ""):
                 await register_comfy_tools()
@@ -285,7 +358,13 @@ class ToolService:
 
     def get_tool(self, tool_name: str) -> BaseTool | None:
         tool_info = self.tools.get(tool_name)
-        return tool_info.get("tool_function") if tool_info else None
+        if tool_info:
+            tool_function = tool_info.get("tool_function")
+            print(f"🔍 获取工具 {tool_name}: {type(tool_function)}")
+            return tool_function
+        else:
+            print(f"⚠️ 工具未找到: {tool_name}")
+            return None
 
     def remove_tool(self, tool_id: str):
         self.tools.pop(tool_id)
