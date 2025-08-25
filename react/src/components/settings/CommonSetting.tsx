@@ -127,11 +127,27 @@ export default function CommonSetting({
       {/* Models Configuration - only for custom providers */}
       {providerKey !== 'ollama' && (
         <div className="space-y-2">
+<<<<<<< Updated upstream
           <AddModelsList
             models={config.models || {}}
             onChange={handleModelsChange}
             label={t('settings:models.title')}
           />
+=======
+          {providerKey === 'modelscope' ? (
+            <ModelScopeModelsList
+              models={config.models || {}}
+              onChange={handleModelsChange}
+              label="魔搭模型配置"
+            />
+          ) : (
+            <AddModelsList
+              models={config.models || {}}
+              onChange={handleModelsChange}
+              label={t('settings:models.title')}
+            />
+          )}
+>>>>>>> Stashed changes
         </div>
       )}
 

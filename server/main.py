@@ -7,7 +7,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
 print('Importing routers')
-from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation
+from routers import config_router, image_router, video_router, multimodal_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
@@ -53,6 +53,8 @@ app.include_router(root_router.router)
 app.include_router(canvas.router)
 app.include_router(workspace.router)
 app.include_router(image_router.router)
+app.include_router(video_router.router)
+app.include_router(multimodal_router.router)
 app.include_router(ssl_test.router)
 app.include_router(chat_router.router)
 app.include_router(tool_confirmation.router)

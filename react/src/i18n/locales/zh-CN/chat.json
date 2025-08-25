@@ -10,6 +10,7 @@
     "enterPrompt": "请输入提示内容",
     "quantity": "生成数量"
   },
+  "uploadFiles": "上传图片或视频",
   "messages": {
     "imagePositioning": "定位到图片",
     "showMore": "显示更多",

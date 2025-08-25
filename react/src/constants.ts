@@ -44,6 +44,10 @@ export const PROVIDER_NAME_MAPPING: {
     name: 'Midjourney',
     icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/midjourney/midjourney-original.svg',
   },
+  google: {
+    name: 'Google AI (Gemini)',
+    icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg',
+  },
 }
 
 // Tool call name mapping

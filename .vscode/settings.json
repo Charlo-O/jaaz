@@ -1,7 +1,15 @@
 {
+<<<<<<< Updated upstream
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.extraPaths": ["server/"],
+=======
+  "python.languageServer": "None",
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.extraPaths": [
+    "server/"
+  ],
+>>>>>>> Stashed changes
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true

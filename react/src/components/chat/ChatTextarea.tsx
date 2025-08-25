@@ -1,6 +1,6 @@
 import { cancelChat } from '@/api/chat'
 import { cancelMagicGenerate } from '@/api/magic'
-import { uploadImage } from '@/api/upload'
+import { uploadFile, processVideo, analyzeVideoAndAddToCanvas, UploadImageResponse, UploadVideoResponse, VideoProcessResponse } from '@/api/upload'
 import { Button } from '@/components/ui/button'
 import { useConfigs } from '@/contexts/configs'
 import {
@@ -45,6 +45,7 @@ type ChatTextareaProps = {
   className?: string
   messages: Message[]
   sessionId?: string
+  canvasId: string
   onSendMessages: (
     data: Message[],
     configs: {
@@ -60,6 +61,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
   className,
   messages,
   sessionId,
+  canvasId,
   onSendMessages,
   onCancelChat,
 }) => {
@@ -74,6 +76,10 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       file_id: string
       width: number
       height: number
+      type?: 'image' | 'video'
+      thumbnail_url?: string
+      duration?: number
+      analysis?: any
     }[]
   >([])
   const [isFocused, setIsFocused] = useState(false)
@@ -83,7 +89,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
   const quantitySliderRef = useRef<HTMLDivElement>(null)
   const MAX_QUANTITY = 30
 
-  const imageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 充值按钮组件
   const RechargeContent = useCallback(() => (
@@ -109,37 +115,98 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     </div>
   ), [t])
 
-  const { mutate: uploadImageMutation } = useMutation({
-    mutationFn: (file: File) => uploadImage(file),
+  const { mutate: uploadFileMutation } = useMutation({
+    mutationFn: (file: File) => uploadFile(file),
     onSuccess: (data) => {
-      console.log('🦄uploadImageMutation onSuccess', data)
-      setImages((prev) => [
-        ...prev,
-        {
-          file_id: data.file_id,
-          width: data.width,
-          height: data.height,
-        },
-      ])
+      console.log('🦄uploadFileMutation onSuccess', data)
+      // 检查是否包含视频特有的属性来判断类型
+      if ('duration' in data && 'fps' in data) {
+        const videoData = data as UploadVideoResponse
+        setImages((prev) => [
+          ...prev,
+          {
+            file_id: videoData.file_id,
+            width: videoData.width,
+            height: videoData.height,
+            type: 'video',
+            thumbnail_url: videoData.thumbnail_url,
+            duration: videoData.duration,
+          },
+        ])
+      } else {
+        const imageData = data as UploadImageResponse
+        setImages((prev) => [
+          ...prev,
+          {
+            file_id: imageData.file_id,
+            width: imageData.width,
+            height: imageData.height,
+            type: 'image',
+          },
+        ])
+      }
     },
     onError: (error) => {
-      console.error('🦄uploadImageMutation onError', error)
-      toast.error('Failed to upload image', {
+      console.error('🦄uploadFileMutation onError', error)
+      toast.error('Failed to upload file', {
         description: <div>{error.toString()}</div>,
       })
     },
   })
 
-  const handleImagesUpload = useCallback(
+  const { mutate: processVideoMutation } = useMutation({
+    mutationFn: (file: File) => processVideo(file, 0.5),
+    onSuccess: (data) => {
+      console.log('🎬processVideoMutation onSuccess', data)
+      const videoData = data as VideoProcessResponse
+      setImages((prev) => [
+        ...prev,
+        {
+          file_id: videoData.file_id,
+          width: videoData.analysis?.video_info?.duration || 0,
+          height: 0,
+          type: 'video',
+          thumbnail_url: videoData.thumbnail_url,
+          duration: videoData.analysis?.video_info?.duration || 0,
+          analysis: videoData.analysis,
+        },
+      ])
+
+      // 显示处理结果
+      toast.success('视频处理完成', {
+        description: videoData.message,
+        duration: 5000,
+      })
+    },
+    onError: (error) => {
+      console.error('🎬processVideoMutation onError', error)
+      toast.error('视频处理失败', {
+        description: <div>{error.toString()}</div>,
+      })
+    },
+  })
+
+  const handleFilesUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
       if (files) {
         for (const file of files) {
-          uploadImageMutation(file)
+          // 检查是否为视频文件
+          const fileType = file.type.split('/')[0]
+          const extension = file.name.split('.').pop()?.toLowerCase()
+          const videoExts = ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp', 'ogv']
+
+          if (fileType === 'video' || (extension && videoExts.includes(extension))) {
+            // 视频文件统一使用普通上传，不自动分析
+            uploadFileMutation(file)
+          } else {
+            // 图片文件正常上传
+            uploadFileMutation(file)
+          }
         }
       }
     },
-    [uploadImageMutation]
+    [uploadFileMutation]
   )
 
   const handleCancelChat = useCallback(async () => {
@@ -181,10 +248,59 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       toast.warning(t('chat:textarea.selectTool'))
     }
 
+<<<<<<< Updated upstream
     let value: MessageContent[] | string = prompt
     if (prompt.length === 0 || prompt.trim() === '') {
+=======
+    let text_content: MessageContent[] | string = prompt
+    const hasVideos = images.some(item => item.type === 'video')
+
+    // 如果有视频文件，即使没有文字也允许发送（用于视频分析）
+    if (!hasVideos && (prompt.length === 0 || prompt.trim() === '')) {
+>>>>>>> Stashed changes
       toast.error(t('chat:textarea.enterPrompt'))
       return
+    }
+
+    // 如果有视频文件，先进行视频分析并添加到画布
+    // 但是如果canvasId为空（首页），则跳过视频分析，让画布页面处理
+    console.log('🎬 视频分析检查:', { hasVideos, canvasId, condition: hasVideos && canvasId })
+    if (hasVideos && canvasId) {
+      const videoFiles = images.filter(item => item.type === 'video')
+
+      try {
+        // 对每个视频文件进行分析
+        for (const video of videoFiles) {
+          console.log('🎬 开始视频分析:', {
+            file_id: video.file_id,
+            canvas_id: canvasId,
+            video: video
+          })
+
+          toast.info('开始分析视频，请稍候...', {
+            duration: 3000,
+          })
+
+          const result = await analyzeVideoAndAddToCanvas(video.file_id, canvasId, 0.5, sessionId)
+
+          if (result.success) {
+            toast.success('视频分析完成，图片已添加到画布', {
+              description: result.message,
+              duration: 5000,
+            })
+          } else {
+            toast.error('视频分析失败', {
+              description: result.message,
+            })
+          }
+        }
+      } catch (error) {
+        console.error('视频分析错误:', error)
+        toast.error('视频分析失败', {
+          description: `错误: ${error}`,
+        })
+        return
+      }
     }
 
     // Add aspect ratio and quantity information if not default values
@@ -201,6 +317,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     }
 
     if (images.length > 0) {
+<<<<<<< Updated upstream
       images.forEach((image) => {
         value += `\n\n ![Attached image - width: ${image.width} height: ${image.height} filename: ${image.file_id}](/api/file/${image.file_id})`
       })
@@ -214,8 +331,50 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           reader.onloadend = () => resolve(reader.result as string)
           reader.readAsDataURL(blob)
         })
+=======
+      const imageFiles = images.filter(item => item.type !== 'video')
+      const videoFiles = images.filter(item => item.type === 'video')
+
+      if (imageFiles.length > 0) {
+        text_content += `\n\n<input_images count="${imageFiles.length}">`
+        imageFiles.forEach((image, index) => {
+          text_content += `\n<image index="${index + 1}" file_id="${image.file_id}" width="${image.width}" height="${image.height}" />`
+        })
+        text_content += `\n</input_images>`
+      }
+
+      if (videoFiles.length > 0) {
+        text_content += `\n\n<input_videos count="${videoFiles.length}">`
+        videoFiles.forEach((video, index) => {
+          text_content += `\n<video index="${index + 1}" file_id="${video.file_id}" width="${video.width}" height="${video.height}" duration="${video.duration || 0}"`
+
+          // 如果有视频分析数据，添加场景信息
+          if (video.analysis) {
+            text_content += ` scenes="${video.analysis.scene_detection.total_scenes}" method="${video.analysis.scene_detection.method}"`
+          }
+
+          text_content += ` />`
+        })
+        text_content += `\n</input_videos>`
+      }
+    }
+
+    // Separate images and videos
+    const imageFiles = images.filter(item => item.type !== 'video')
+    const videoFiles = images.filter(item => item.type === 'video')
+
+    // Fetch images as base64
+    const imagePromises = imageFiles.map(async (image) => {
+      const response = await fetch(`/api/file/${image.file_id}`)
+      const blob = await response.blob()
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(blob)
+>>>>>>> Stashed changes
       })
 
+<<<<<<< Updated upstream
       const base64Images = await Promise.all(imagePromises)
 
       value = [
@@ -231,6 +390,42 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
         })),
       ] as MessageContent[]
     }
+=======
+    // Fetch videos as base64 (for models that support it)
+    const videoPromises = videoFiles.map(async (video) => {
+      const response = await fetch(`/api/file/${video.file_id}`)
+      const blob = await response.blob()
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(blob)
+      })
+    })
+
+    const [base64Images, base64Videos] = await Promise.all([
+      Promise.all(imagePromises),
+      Promise.all(videoPromises)
+    ])
+
+    const final_content = [
+      {
+        type: 'text',
+        text: text_content as string,
+      },
+      ...imageFiles.map((image, index) => ({
+        type: 'image_url',
+        image_url: {
+          url: base64Images[index],
+        },
+      })),
+      ...videoFiles.map((video, index) => ({
+        type: 'video_url',
+        video_url: {
+          url: base64Videos[index],
+        },
+      })),
+    ] as MessageContent[]
+>>>>>>> Stashed changes
 
     const newMessage = messages.concat([
       {
@@ -261,6 +456,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     setShowLoginDialog,
     balance,
     RechargeContent,
+    canvasId,
   ])
 
   // Drop Area
@@ -270,10 +466,21 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
   const handleFilesDrop = useCallback(
     (files: File[]) => {
       for (const file of files) {
-        uploadImageMutation(file)
+        // 检查是否为视频文件
+        const fileType = file.type.split('/')[0]
+        const extension = file.name.split('.').pop()?.toLowerCase()
+        const videoExts = ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp', 'ogv']
+
+        if (fileType === 'video' || (extension && videoExts.includes(extension))) {
+          // 视频文件统一使用普通上传，不自动分析
+          uploadFileMutation(file)
+        } else {
+          // 图片文件正常上传
+          uploadFileMutation(file)
+        }
       }
     },
-    [uploadImageMutation]
+    [uploadFileMutation]
   )
 
   useDrop(dropAreaRef, {
@@ -294,7 +501,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       data.forEach(async (image) => {
         if (image.base64) {
           const file = dataURLToFile(image.base64, image.fileId)
-          uploadImageMutation(file)
+          uploadFileMutation(file)
         } else {
           setImages(
             produce((prev) => {
@@ -323,7 +530,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           const file = new File([blob], image.fileName, {
             type: `image/${image.fileType}`,
           })
-          uploadImageMutation(file)
+          uploadFileMutation(file)
         } catch (error) {
           console.error('Failed to load image from material:', error)
           toast.error('Failed to load image from material', {
@@ -341,7 +548,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       eventBus.off('Canvas::AddImagesToChat', handleAddImagesToChat)
       eventBus.off('Material::AddImagesToChat', handleMaterialAddImagesToChat)
     }
-  }, [uploadImageMutation])
+  }, [uploadFileMutation])
 
   // Close quantity slider when clicking outside
   useEffect(() => {
@@ -408,29 +615,49 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
           >
-            {images.map((image) => (
+            {images.map((item) => (
               <motion.div
-                key={image.file_id}
+                key={item.file_id}
                 className="relative size-10"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
               >
-                <img
-                  key={image.file_id}
-                  src={`/api/file/${image.file_id}`}
-                  alt="Uploaded image"
-                  className="w-full h-full object-cover rounded-md"
-                  draggable={false}
-                />
+                {item.type === 'video' ? (
+                  <>
+                    {item.thumbnail_url ? (
+                      <img
+                        src={item.thumbnail_url}
+                        alt="Video thumbnail"
+                        className="w-full h-full object-cover rounded-md"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">📹</span>
+                      </div>
+                    )}
+                    {/* Video indicator */}
+                    <div className="absolute bottom-0 left-0 bg-black/50 text-white text-xs px-1 rounded-tl-md rounded-br-md">
+                      {item.duration ? `${Math.round(item.duration)}s` : '📹'}
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={`/api/file/${item.file_id}`}
+                    alt="Uploaded image"
+                    className="w-full h-full object-cover rounded-md"
+                    draggable={false}
+                  />
+                )}
                 <Button
                   variant="secondary"
                   size="icon"
                   className="absolute -top-1 -right-1 size-4"
                   onClick={() =>
                     setImages((prev) =>
-                      prev.filter((i) => i.file_id !== image.file_id)
+                      prev.filter((i) => i.file_id !== item.file_id)
                     )
                   }
                 >
@@ -462,17 +689,18 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center gap-2 max-w-[calc(100%-50px)] flex-wrap">
           <input
-            ref={imageInputRef}
+            ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
-            onChange={handleImagesUpload}
+            onChange={handleFilesUpload}
             hidden
           />
           <Button
             variant="outline"
             size="sm"
-            onClick={() => imageInputRef.current?.click()}
+            onClick={() => fileInputRef.current?.click()}
+            title={t('chat:uploadFiles')}
           >
             <PlusIcon className="size-4" />
           </Button>
@@ -585,7 +813,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             variant="default"
             size="icon"
             onClick={handleSendPrompt}
-            disabled={!textModel || !selectedTools || prompt.length === 0}
+            disabled={!textModel || !selectedTools || (prompt.length === 0 && !images.some(item => item.type === 'video'))}
           >
             <ArrowUp className="size-4" />
           </Button>

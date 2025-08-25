@@ -21,6 +21,7 @@ export type MessageContentType = MessageContent[] | string
 export type MessageContent =
   | { text: string; type: 'text' }
   | { image_url: { url: string }; type: 'image_url' }
+  | { video_url: { url: string }; type: 'video_url' }
 
 export type ToolResultMessage = {
   role: 'tool'

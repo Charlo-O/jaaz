@@ -34,6 +34,19 @@ const PROVIDER_OPTIONS = [
     },
   },
   {
+<<<<<<< Updated upstream
+=======
+    value: 'modelscope',
+    label: 'ModelScope (魔搭)',
+    mediaOnly: true,
+    data: {
+      apiUrl: 'https://api-inference.modelscope.cn/v1/images/generations',
+      models: {},
+      api_key: '',
+    },
+  },
+  {
+>>>>>>> Stashed changes
     value: 'OpenRouter',
     label: 'OpenRouter',
     data: {
@@ -101,6 +114,16 @@ const PROVIDER_OPTIONS = [
         'doubao-seedance-1-0-pro-250528': { type: 'video' },
         'doubao-seedance-1-0-lite-i2v-250428': { type: 'video' },
         'doubao-seedance-1-0-lite-t2v-250428': { type: 'video' },
+      },
+    },
+  },
+  {
+    value: 'google',
+    label: 'Google AI (Gemini)',
+    data: {
+      apiUrl: 'https://generativelanguage.googleapis.com',
+      models: {
+        'gemini-2.5-flash': { type: 'text' },
       },
     },
   },

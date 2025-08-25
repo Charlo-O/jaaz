@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 # Import service modules
 from services.db_service import db_service
 from services.OpenAIAgents_service import create_jaaz_response
+from services.OpenAIAgents_service.jaaz_magic_agent import create_multimodal_analysis_response
 from services.websocket_service import send_to_websocket  # type: ignore
 from services.stream_service import add_stream_task, remove_stream_task
 
@@ -85,8 +86,29 @@ async def _process_magic_generation(
         session_id: Session ID
         canvas_id: Canvas ID
     """
-
-    ai_response = await create_jaaz_response(messages, session_id, canvas_id)
+    
+    # 检查消息内容类型，决定使用哪个服务
+    user_message = messages[-1] if messages else {}
+    has_media = False
+    has_video = False
+    
+    if isinstance(user_message.get('content'), list):
+        for content_item in user_message['content']:
+            if content_item.get('type') in ['image_url', 'video_url']:
+                has_media = True
+                if content_item.get('type') == 'video_url':
+                    has_video = True
+                break
+    
+    # 根据内容类型选择合适的处理方法
+    if has_media:
+        # 如果包含图片或视频，使用多模态分析
+        print(f"🎬 检测到{'视频' if has_video else '图片'}内容，使用多模态分析服务")
+        ai_response = await create_multimodal_analysis_response(messages, session_id, canvas_id)
+    else:
+        # 否则使用原有的图像生成服务
+        print("🎨 使用图像生成服务")
+        ai_response = await create_jaaz_response(messages, session_id, canvas_id)
 
     # Save AI response to database
     await db_service.create_message(session_id, 'assistant', json.dumps(ai_response))

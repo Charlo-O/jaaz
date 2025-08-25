@@ -31,9 +31,11 @@ async def upload_image(file: UploadFile = File(...), max_size_mb: float = 3.0):
         raise HTTPException(status_code=400, detail=f"Error reading file: {e}")
     original_size_mb = len(content) / (1024 * 1024)  # Convert to MB
 
-    # Open the image from bytes to get its dimensions
-    with Image.open(BytesIO(content)) as img:
-        width, height = img.size
+    # Check if this is actually an image file
+    try:
+        # Try to open as image first
+        with Image.open(BytesIO(content)) as img:
+            width, height = img.size
         
         # Check if compression is needed
         if original_size_mb > max_size_mb:
@@ -87,14 +89,27 @@ async def upload_image(file: UploadFile = File(...), max_size_mb: float = 3.0):
             # img.save(file_path, format=save_format)
             await run_in_threadpool(img.save, file_path, format=save_format)
 
-    # 返回文件信息
-    print('🦄upload_image file_path', file_path)
-    return {
-        'file_id': f'{file_id}.{extension}',
-        'url': f'http://localhost:{DEFAULT_PORT}/api/file/{file_id}.{extension}',
-        'width': width,
-        'height': height,
-    }
+        # 返回文件信息
+        print('🦄upload_image file_path', file_path)
+        return {
+            'file_id': f'{file_id}.{extension}',
+            'url': f'http://localhost:{DEFAULT_PORT}/api/file/{file_id}.{extension}',
+            'width': width,
+            'height': height,
+        }
+    
+    except Exception as e:
+        # Check if this looks like a video file based on filename
+        if filename and any(filename.lower().endswith(ext) for ext in ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.3gp', '.ogv']):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"This appears to be a video file ({filename}). Please use the video upload endpoint instead of image upload."
+            )
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid image file. Error: {str(e)}"
+            )
 
 
 def compress_image(img: Image.Image, max_size_mb: float) -> bytes:

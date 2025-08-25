@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频分析测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .result-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .log {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            font-family: monospace;
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>视频分析测试工具</h1>
+
+        <div class="upload-section">
+            <h3>1. 上传视频文件</h3>
+            <input type="file" id="videoFile" accept="video/*">
+            <button onclick="uploadVideo()">上传视频</button>
+            <div id="uploadResult"></div>
+        </div>
+
+        <div class="upload-section">
+            <h3>2. 分析视频并添加到画布</h3>
+            <input type="text" id="fileId" placeholder="输入文件ID">
+            <input type="text" id="canvasId" placeholder="输入画布ID" value="test-canvas-123">
+            <input type="text" id="sessionId" placeholder="输入会话ID" value="test-session-123">
+            <button onclick="analyzeVideo()">分析视频</button>
+            <div id="analysisResult"></div>
+        </div>
+
+        <div class="result-section">
+            <h3>实时日志</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                log('请选择一个视频文件', 'error');
+                return;
+            }
+
+            log(`开始上传视频: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/upload_video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+
+                const result = await response.json();
+                log(`视频上传成功: ${JSON.stringify(result)}`, 'success');
+
+                // 自动填充file_id
+                document.getElementById('fileId').value = result.file_id;
+
+                document.getElementById('uploadResult').innerHTML =
+                    `<div class="success">上传成功！文件ID: ${result.file_id}</div>`;
+
+            } catch (error) {
+                log(`视频上传失败: ${error.message}`, 'error');
+                document.getElementById('uploadResult').innerHTML =
+                    `<div class="error">上传失败: ${error.message}</div>`;
+            }
+        }
+
+        async function analyzeVideo() {
+            const fileId = document.getElementById('fileId').value;
+            const canvasId = document.getElementById('canvasId').value;
+            const sessionId = document.getElementById('sessionId').value;
+
+            if (!fileId || !canvasId) {
+                log('请输入文件ID和画布ID', 'error');
+                return;
+            }
+
+            log(`开始分析视频: fileId=${fileId}, canvasId=${canvasId}, sessionId=${sessionId}`);
+
+            try {
+                const response = await fetch('/api/analyze_video_to_canvas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        canvas_id: canvasId,
+                        session_id: sessionId,
+                        threshold: 0.5
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP错误: ${response.status}`);
+                }
+
+                const result = await response.json();
+                log(`视频分析成功: ${JSON.stringify(result, null, 2)}`, 'success');
+
+                document.getElementById('analysisResult').innerHTML =
+                    `<div class="success">
+                        <h4>分析完成！</h4>
+                        <p>检测到 ${result.analysis.scene_detection.total_scenes} 个场景</p>
+                        <p>图片URL: <a href="${result.image_url}" target="_blank">${result.image_url}</a></p>
+                        <p>消息: ${result.message}</p>
+                    </div>`;
+
+            } catch (error) {
+                log(`视频分析失败: ${error.message}`, 'error');
+                document.getElementById('analysisResult').innerHTML =
+                    `<div class="error">分析失败: ${error.message}</div>`;
+            }
+        }
+
+        // 页面加载时的初始化
+        window.addEventListener('load', () => {
+            log('视频分析测试工具已加载');
+            log('提示：先上传视频文件，然后进行分析');
+        });
+    </script>
+</body>
+
+</html>

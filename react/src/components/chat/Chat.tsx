@@ -152,7 +152,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               last.content.at(-1) &&
               last.content.at(-1)!.type === 'text'
             ) {
-              ;(last.content.at(-1) as { text: string }).text += data.text
+              ; (last.content.at(-1) as { text: string }).text += data.text
             }
           } else {
             prev.push({
@@ -735,6 +735,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div className='p-2 gap-2 sticky bottom-0'>
           <ChatTextarea
             sessionId={sessionId!}
+            canvasId={canvasId}
             pending={!!pending}
             messages={messages}
             onSendMessages={onSendMessages}

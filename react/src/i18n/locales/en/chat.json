@@ -10,6 +10,7 @@
     "enterPrompt": "Please enter a prompt",
     "quantity": "Image Quantity"
   },
+  "uploadFiles": "Upload Images or Videos",
   "messages": {
     "imagePositioning": "Go to image",
     "showMore": "Show More",

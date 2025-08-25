@@ -55,7 +55,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
     if (!appState) return
 
     // Check if any selected element is embeddable type
-    const selectedElements = elements.filter((element) => 
+    const selectedElements = elements.filter((element) =>
       appState.selectedElementIds[element.id]
     )
     const hasEmbeddableSelected = selectedElements.some(
@@ -128,13 +128,53 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   )
   const { theme } = useTheme()
 
+<<<<<<< Updated upstream
+=======
+  // 添加自定义类名以便应用我们的CSS修复
+  const excalidrawClassName = `excalidraw-custom ${theme === 'dark' ? 'excalidraw-dark-fix' : ''}`
+
+  // 在深色模式下使用自定义主题设置，避免使用默认的滤镜
+  // 这样可以确保颜色在深色模式下正确显示
+  const customTheme = theme === 'dark' ? 'light' : theme
+
+  // 在组件挂载和主题变化时设置深色模式下的背景色
+  useEffect(() => {
+    if (excalidrawAPI && theme === 'dark') {
+      // 设置深色背景，但保持light主题以避免颜色反转
+      excalidrawAPI.updateScene({
+        appState: {
+          viewBackgroundColor: '#121212',
+        }
+      })
+    } else if (excalidrawAPI && theme === 'light') {
+      // 恢复浅色背景
+      excalidrawAPI.updateScene({
+        appState: {
+          viewBackgroundColor: '#ffffff',
+        }
+      })
+    }
+  }, [excalidrawAPI, theme])
+
+>>>>>>> Stashed changes
   const addImageToExcalidraw = useCallback(
     async (imageElement: ExcalidrawImageElement, file: BinaryFileData) => {
-      if (!excalidrawAPI) return
+      console.log('👇 addImageToExcalidraw called with:', {
+        excalidrawAPI: !!excalidrawAPI,
+        imageElement,
+        file
+      })
+
+      if (!excalidrawAPI) {
+        console.error('👇 excalidrawAPI not available!')
+        return
+      }
 
       // 获取当前画布元素以便添加新元素
       const currentElements = excalidrawAPI.getSceneElements()
+      console.log('👇 Current elements count:', currentElements.length)
 
+      console.log('👇 Adding file to excalidraw:')
       excalidrawAPI.addFiles([file])
 
       console.log('👇 Adding new image element to canvas:', imageElement.id)
@@ -158,9 +198,12 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         isDeleted: false,
       }
 
+      console.log('👇 Updating scene with new element')
       excalidrawAPI.updateScene({
         elements: [...(currentElements || []), unlockedImageElement],
       })
+
+      console.log('👇 Image successfully added to canvas')
 
       localStorage.setItem(
         'excalidraw-last-image-position',
@@ -324,6 +367,9 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   const handleImageGenerated = useCallback(
     (imageData: ISocket.SessionImageGeneratedEvent) => {
       console.log('👇 CanvasExcali received image_generated:', imageData)
+      console.log('👇 Current canvasId:', canvasId)
+      console.log('👇 Event canvas_id:', imageData.canvas_id)
+      console.log('👇 Event session_id:', imageData.session_id)
 
       // Only handle if it's for this canvas
       if (imageData.canvas_id !== canvasId) {
@@ -338,6 +384,14 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         )
         return
       }
+
+      console.log('👇 Adding image to Excalidraw:', {
+        fileId: imageData.element.fileId,
+        width: imageData.element.width,
+        height: imageData.element.height,
+        x: imageData.element.x,
+        y: imageData.element.y
+      })
 
       addImageToExcalidraw(imageData.element, imageData.file)
     },

@@ -26,12 +26,27 @@ langgraph-sdk==0.1.70
 langgraph-swarm==0.0.11
 langchain-ollama==0.3.3
 langchain-openai==0.3.21
+langchain-google-genai
 python-socketio==5.13.0
 pymediainfo
 openai-agents
 socksio # For vpn from command line like export https_proxy=http://127.0.0.1:7897 http_proxy=http://127.0.0.1:7897 all_proxy=socks5://127.0.0.1:7897
+<<<<<<< Updated upstream
 piexif # For EXIF metadata handling in JPEG files 
 # Browser automation for image downloading
 selenium>=4.0.0  # Chrome automation
 playwright>=1.20.0  # Modern browser automation (optional)
 webdriver-manager  # Automatic ChromeDriver management
+=======
+piexif # For EXIF metadata handling in JPEG files
+opencv-python # For video processing and thumbnail generation
+matplotlib>=3.0.0 # For video analysis charts and visualization
+# ffmpeg-python # Optional: For advanced video compression (requires FFmpeg binary) 
+
+# TransNetV2 dependencies
+tensorflow>=2.4.0 # For TransNetV2 TensorFlow version
+torch>=1.7.1 # For TransNetV2 PyTorch version
+torchvision>=0.8.2 # For TransNetV2 PyTorch version
+numpy>=1.19.0
+ffmpeg-python # For TransNetV2 video frame extraction 
+>>>>>>> Stashed changes

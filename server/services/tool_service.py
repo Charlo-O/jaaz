@@ -50,7 +50,14 @@ from tools.generate_image_by_recraft_v3_replicate import (
 )
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
+<<<<<<< Updated upstream
 from tools.generate_image_by_midjourney import generate_image_by_midjourney
+=======
+from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
+from tools.analyze_video_by_gemini import analyze_video_by_gemini
+
+# ModelScope tools are now dynamically registered through configuration
+>>>>>>> Stashed changes
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -184,11 +191,19 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "replicate",
         "tool_function": generate_image_by_flux_kontext_max_replicate,
     },
+<<<<<<< Updated upstream
     "generate_image_by_midjourney": {
         "display_name": "Midjourney",
         "type": "image",
         "provider": "midjourney",  
         "tool_function": generate_image_by_midjourney,
+=======
+    "analyze_video_by_gemini": {
+        "display_name": "Video Analysis by Gemini",
+        "type": "analysis",
+        "provider": "google",
+        "tool_function": analyze_video_by_gemini,
+>>>>>>> Stashed changes
     },
 }
 
@@ -230,6 +245,102 @@ class ToolService:
                     for tool_id, tool_info in TOOL_MAPPING.items():
                         if tool_info.get("provider") == provider_name:
                             self.register_tool(tool_id, tool_info)
+<<<<<<< Updated upstream
+=======
+
+                    # For ModelScope: register a dynamic tool for each configured model
+                    if provider_name == 'modelscope':
+                        ms_models = provider_config.get('models') or {}
+                        for model_name in ms_models.keys():
+                            dynamic_tool_id = f"modelscope__{model_name.replace('/', '_').replace('-', '_')}"
+                            if dynamic_tool_id in self.tools:
+                                continue
+                            from typing import Annotated, Optional
+                            from pydantic import BaseModel, Field  # type: ignore
+                            from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+                            from langchain_core.runnables import RunnableConfig  # type: ignore
+
+                            class _FixedSchema(BaseModel):
+                                prompt: str = Field(
+                                    description="Required. Detailed English text prompt describing the image to generate (e.g. 'A realistic illustration of a British Shorthair cat, sitting upright and gazing directly at the viewer')"
+                                )
+                                model: str = Field(
+                                    default=model_name,
+                                    description=f"Required. ModelScope model ID: {model_name}",
+                                )
+                                aspect_ratio: str = Field(
+                                    default="1:1",
+                                    description="Required. Image aspect ratio - must be one of: 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3",
+                                )
+                                negative_prompt: Optional[str] = Field(
+                                    default=None,
+                                    description="Optional. Text describing what should NOT appear in the image",
+                                )
+                                steps: Optional[int] = Field(
+                                    default=30,
+                                    description="Optional. Number of sampling steps for image generation (1-100)",
+                                )
+                                guidance: Optional[float] = Field(
+                                    default=3.5,
+                                    description="Optional. Guidance scale for prompt adherence (1.5-20)",
+                                )
+                                seed: Optional[int] = Field(
+                                    default=None,
+                                    description="Optional. Random seed for reproducible results",
+                                )
+                                tool_call_id: Annotated[str, InjectedToolCallId]
+
+                            @tool(
+                                dynamic_tool_id,
+                                description=f"Generate image using ModelScope model: {model_name}. This tool creates AI-generated images from text prompts using the specified ModelScope model. Required parameters: prompt (descriptive text), aspect_ratio (1:1, 16:9, 9:16, etc.). Optional: negative_prompt, steps (1-100), guidance (1.5-20), seed.",
+                                args_schema=_FixedSchema,
+                            )
+                            async def _run(
+                                prompt: str,
+                                model: str,
+                                aspect_ratio: str,
+                                config: RunnableConfig,
+                                tool_call_id: Annotated[str, InjectedToolCallId],
+                                negative_prompt: Optional[str] = None,
+                                steps: Optional[int] = 30,
+                                guidance: Optional[float] = 3.5,
+                                seed: Optional[int] = None,
+                            ) -> str:
+                                print(
+                                    f"🛠️ ModelScope工具被调用，tool_call_id: {tool_call_id}"
+                                )
+                                print(
+                                    f"🛠️ 参数: prompt={prompt}, model={model}, aspect_ratio={aspect_ratio}, steps={steps}, guidance={guidance}, seed={seed}"
+                                )
+
+                                from tools.generate_image_by_modelscope import (
+                                    generate_image_by_modelscope as base,
+                                )
+
+                                return await base(
+                                    prompt=prompt,
+                                    model=model,
+                                    aspect_ratio=aspect_ratio,
+                                    config=config,
+                                    tool_call_id=tool_call_id,
+                                    negative_prompt=negative_prompt,
+                                    steps=steps,
+                                    guidance=guidance,
+                                    seed=seed,
+                                )
+
+                            print(f"🛠️ 注册ModelScope动态工具: {dynamic_tool_id}")
+                            print(f"🛠️ 工具函数类型: {type(_run)}")
+                            self.register_tool(
+                                dynamic_tool_id,
+                                {
+                                    "provider": "modelscope",
+                                    "display_name": model_name,
+                                    "type": "image",
+                                    "tool_function": _run,  # type: ignore
+                                },
+                            )
+>>>>>>> Stashed changes
             # Register comfyui workflow tools
             if config_service.app_config.get("comfyui", {}).get("url", ""):
                 await register_comfy_tools()
@@ -237,6 +348,47 @@ class ToolService:
             print(f"❌ Failed to initialize tool service: {e}")
             traceback.print_stack()
 
+<<<<<<< Updated upstream
+=======
+    async def _register_dynamic_image_models(
+        self, provider_name: str, provider_config: dict
+    ):
+        """Register dynamic image generation tools based on user-configured models"""
+        try:
+            # Skip ModelScope - it has its own dedicated registration logic
+            if provider_name == "modelscope":
+                return
+
+            models = provider_config.get("models", {})
+            for model_id, model_info in models.items():
+                if model_info.get("type") == "image":
+                    # Create dynamic tool ID
+                    safe_model_name = (
+                        model_id.replace("/", "_").replace("-", "_").lower()
+                    )
+                    tool_id = f"generate_image_by_{provider_name}_{safe_model_name}"
+
+                    # Skip if tool already exists (avoid duplicates)
+                    if tool_id in self.tools:
+                        continue
+
+                    # Create display name
+                    display_name = f"{provider_name.title()} {model_id}"
+
+                    # For other providers (not ModelScope), add additional logic here if needed
+                    print(
+                        f"ℹ️ Skipping dynamic registration for {provider_name} - not implemented yet"
+                    )
+
+        except Exception as e:
+            print(
+                f"❌ Failed to register dynamic image models for {provider_name}: {e}"
+            )
+            import traceback
+
+            traceback.print_exc()
+
+>>>>>>> Stashed changes
     def get_tool(self, tool_name: str) -> BaseTool | None:
         tool_info = self.tools.get(tool_name)
         return tool_info.get("tool_function") if tool_info else None

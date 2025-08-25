@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频分析诊断工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .log {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            font-family: monospace;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .error {
+            color: #ff4444;
+        }
+
+        .success {
+            color: #44ff44;
+        }
+
+        .warning {
+            color: #ffaa44;
+        }
+
+        .info {
+            color: #4444ff;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 视频分析诊断工具</h1>
+        <p>此工具帮助诊断视频分析功能是否正常工作，以及画布中显示的是关键帧还是图表。</p>
+
+        <div class="section">
+            <h3>📋 步骤1: 检查服务器状态</h3>
+            <button onclick="checkServerStatus()">检查服务器状态</button>
+            <div id="serverStatus"></div>
+        </div>
+
+        <div class="section">
+            <h3>📤 步骤2: 上传测试视频</h3>
+            <input type="file" id="testVideo" accept="video/*">
+            <button onclick="uploadTestVideo()">上传视频</button>
+            <div id="uploadStatus"></div>
+        </div>
+
+        <div class="section">
+            <h3>🔬 步骤3: 测试视频分析API</h3>
+            <input type="text" id="testFileId" placeholder="输入文件ID">
+            <input type="text" id="testCanvasId" placeholder="输入画布ID" value="debug-canvas-001">
+            <br>
+            <button onclick="testAnalyzeVideoToCanvas()" id="analyzeBtn" disabled>测试 analyze_video_to_canvas</button>
+            <button onclick="testProcessVideo()" id="processBtn" disabled>测试 process_video (对比)</button>
+            <div id="analysisStatus"></div>
+        </div>
+
+        <div class="section">
+            <h3>🖼️ 步骤4: 检查生成的图片</h3>
+            <button onclick="checkGeneratedImages()" id="checkImagesBtn" disabled>检查生成的图片</button>
+            <div id="imagesStatus"></div>
+        </div>
+
+        <div class="section">
+            <h3>📊 实时日志</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+        let currentFileId = '';
+        let currentCanvasId = 'debug-canvas-001';
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+
+        function setStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function checkServerStatus() {
+            log('🔍 检查服务器状态...', 'info');
+
+            try {
+                // 检查基本API
+                const response = await fetch('/api/list_models');
+                if (response.ok) {
+                    const models = await response.json();
+                    log('✅ 服务器连接正常', 'success');
+                    setStatus('serverStatus', '✅ 服务器运行正常，API可访问', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ 服务器连接失败: ${error.message}`, 'error');
+                setStatus('serverStatus', `❌ 服务器连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function uploadTestVideo() {
+            const fileInput = document.getElementById('testVideo');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                log('❌ 请先选择视频文件', 'error');
+                return;
+            }
+
+            if (!file.type.startsWith('video/')) {
+                log('❌ 请选择视频文件', 'error');
+                return;
+            }
+
+            log(`📤 开始上传视频: ${file.name} (${Math.round(file.size / 1024 / 1024)}MB)`, 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/upload_video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentFileId = result.file_id;
+
+                log(`✅ 视频上传成功! 文件ID: ${currentFileId}`, 'success');
+                document.getElementById('testFileId').value = currentFileId;
+
+                setStatus('uploadStatus', `✅ 视频上传成功!<br>文件ID: ${currentFileId}<br>URL: ${result.url}`, 'success');
+
+                // 启用分析按钮
+                document.getElementById('analyzeBtn').disabled = false;
+                document.getElementById('processBtn').disabled = false;
+
+            } catch (error) {
+                log(`❌ 视频上传失败: ${error.message}`, 'error');
+                setStatus('uploadStatus', `❌ 视频上传失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAnalyzeVideoToCanvas() {
+            const fileId = document.getElementById('testFileId').value || currentFileId;
+            const canvasId = document.getElementById('testCanvasId').value || currentCanvasId;
+
+            if (!fileId) {
+                log('❌ 请先上传视频或输入文件ID', 'error');
+                return;
+            }
+
+            log(`🔬 测试 analyze_video_to_canvas API...`, 'info');
+            log(`📋 参数: fileId=${fileId}, canvasId=${canvasId}`, 'info');
+
+            try {
+                const response = await fetch('/api/analyze_video_to_canvas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        canvas_id: canvasId,
+                        session_id: 'debug-session-001',
+                        threshold: 0.5
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                log(`✅ analyze_video_to_canvas 分析成功!`, 'success');
+                log(`📊 检测到 ${result.total_scenes} 个场景`, 'info');
+                log(`🖼️ 提取了 ${result.total_key_frames} 个关键帧`, 'info');
+
+                // 显示关键帧信息
+                if (result.key_frames && result.key_frames.length > 0) {
+                    log(`🎯 关键帧列表:`, 'info');
+                    result.key_frames.forEach((frame, index) => {
+                        log(`  - 帧 ${index + 1}: ${frame.filename} (${frame.width}x${frame.height})`, 'info');
+                    });
+
+                    setStatus('analysisStatus',
+                        `✅ 视频分析成功!<br>` +
+                        `检测到 ${result.total_scenes} 个场景<br>` +
+                        `提取了 ${result.total_key_frames} 个关键帧<br>` +
+                        `关键帧已添加到画布`, 'success');
+
+                    // 启用检查图片按钮
+                    document.getElementById('checkImagesBtn').disabled = false;
+                } else {
+                    log(`⚠️ 没有生成关键帧`, 'warning');
+                    setStatus('analysisStatus', '⚠️ 分析成功但没有生成关键帧', 'warning');
+                }
+
+            } catch (error) {
+                log(`❌ analyze_video_to_canvas 失败: ${error.message}`, 'error');
+                setStatus('analysisStatus', `❌ 视频分析失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProcessVideo() {
+            const fileId = document.getElementById('testFileId').value || currentFileId;
+
+            if (!fileId) {
+                log('❌ 请先上传视频或输入文件ID', 'error');
+                return;
+            }
+
+            log(`🔬 测试 process_video API (对比)...`, 'info');
+
+            try {
+                const response = await fetch(`/api/video_analysis/${fileId}`);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                log(`✅ process_video 分析成功!`, 'success');
+                log(`📊 检测到 ${result.scene_detection.total_scenes} 个场景`, 'info');
+                log(`📈 方法: ${result.scene_detection.method}`, 'info');
+
+                setStatus('analysisStatus',
+                    (document.getElementById('analysisStatus').innerHTML || '') +
+                    `<br><br>📊 对比 - process_video 结果:<br>` +
+                    `检测到 ${result.scene_detection.total_scenes} 个场景<br>` +
+                    `使用方法: ${result.scene_detection.method}<br>` +
+                    `⚠️ 注意: 此API不会生成关键帧图片`, 'info');
+
+            } catch (error) {
+                log(`❌ process_video 失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkGeneratedImages() {
+            const fileId = document.getElementById('testFileId').value || currentFileId;
+            const baseFileId = fileId.split('.')[0];
+
+            log(`🔍 检查生成的关键帧图片...`, 'info');
+
+            let foundImages = 0;
+            let imageResults = [];
+
+            // 检查可能的关键帧文件名
+            for (let i = 0; i < 10; i++) {
+                const imageName = `${baseFileId}_keyframe_${i}.png`;
+                const imageUrl = `/api/file/${imageName}`;
+
+                try {
+                    const response = await fetch(imageUrl, { method: 'HEAD' });
+                    if (response.ok) {
+                        foundImages++;
+                        imageResults.push({
+                            name: imageName,
+                            url: imageUrl,
+                            exists: true
+                        });
+                        log(`✅ 找到关键帧: ${imageName}`, 'success');
+                    }
+                } catch (error) {
+                    // 图片不存在，忽略
+                }
+            }
+
+            if (foundImages > 0) {
+                log(`🎯 总计找到 ${foundImages} 个关键帧图片`, 'success');
+
+                let imageLinksHtml = imageResults
+                    .filter(img => img.exists)
+                    .map(img => `<a href="${img.url}" target="_blank">${img.name}</a>`)
+                    .join('<br>');
+
+                setStatus('imagesStatus',
+                    `✅ 找到 ${foundImages} 个关键帧图片:<br>${imageLinksHtml}<br><br>` +
+                    `💡 这些应该是真实的关键帧，不是matplotlib图表`, 'success');
+            } else {
+                log(`⚠️ 没有找到关键帧图片`, 'warning');
+                setStatus('imagesStatus', '⚠️ 没有找到关键帧图片，可能生成失败或文件名不匹配', 'warning');
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', () => {
+            log('🔍 视频分析诊断工具已加载', 'info');
+            log('📋 请按步骤执行诊断:', 'info');
+            log('   1. 检查服务器状态', 'info');
+            log('   2. 上传测试视频', 'info');
+            log('   3. 测试分析API', 'info');
+            log('   4. 检查生成的图片', 'info');
+        });
+    </script>
+</body>
+
+</html>

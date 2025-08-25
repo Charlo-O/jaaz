@@ -21,6 +21,7 @@ function Home() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { setInitCanvas } = useConfigs()
+  const [canvasId] = useState(() => nanoid())
 
   const { mutate: createCanvasMutation, isPending } = useMutation({
     mutationFn: createCanvas,
@@ -65,10 +66,11 @@ function Home() {
           <ChatTextarea
             className='w-full max-w-xl'
             messages={[]}
+            canvasId={canvasId}
             onSendMessages={(messages, configs) => {
               createCanvasMutation({
                 name: t('home:newCanvas'),
-                canvas_id: nanoid(),
+                canvas_id: canvasId,
                 messages: messages,
                 session_id: nanoid(),
                 text_model: configs.textModel,
