@@ -1,9 +1,12 @@
 {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.extraPaths": ["server/"],
 =======
+=======
+>>>>>>> Stashed changes
   "python.languageServer": "None",
   "python.analysis.typeCheckingMode": "off",
   "python.analysis.extraPaths": [

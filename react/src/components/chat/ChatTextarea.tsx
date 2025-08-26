@@ -80,6 +80,10 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       thumbnail_url?: string
       duration?: number
       analysis?: any
+<<<<<<< Updated upstream
+=======
+      video_source?: string // 记录关键帧的来源视频
+>>>>>>> Stashed changes
     }[]
   >([])
   const [isFocused, setIsFocused] = useState(false)
@@ -249,11 +253,20 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     }
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     let value: MessageContent[] | string = prompt
     if (prompt.length === 0 || prompt.trim() === '') {
 =======
     let text_content: MessageContent[] | string = prompt
     const hasVideos = images.some(item => item.type === 'video')
+
+    // 如果有视频文件，即使没有文字也允许发送（用于视频分析）
+    if (!hasVideos && (prompt.length === 0 || prompt.trim() === '')) {
+>>>>>>> Stashed changes
+=======
+    let text_content: MessageContent[] | string = prompt
+    const originalImages = [...images] // 保存原始图片列表
+    const hasVideos = originalImages.some(item => item.type === 'video')
 
     // 如果有视频文件，即使没有文字也允许发送（用于视频分析）
     if (!hasVideos && (prompt.length === 0 || prompt.trim() === '')) {
@@ -266,7 +279,18 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     // 但是如果canvasId为空（首页），则跳过视频分析，让画布页面处理
     console.log('🎬 视频分析检查:', { hasVideos, canvasId, condition: hasVideos && canvasId })
     if (hasVideos && canvasId) {
+<<<<<<< Updated upstream
       const videoFiles = images.filter(item => item.type === 'video')
+=======
+      const videoFiles = originalImages.filter(item => item.type === 'video')
+      const allKeyFrames: Array<{
+        file_id: string
+        width: number
+        height: number
+        type: 'image'
+        video_source?: string
+      }> = []
+>>>>>>> Stashed changes
 
       try {
         // 对每个视频文件进行分析
@@ -284,16 +308,54 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           const result = await analyzeVideoAndAddToCanvas(video.file_id, canvasId, 0.5, sessionId)
 
           if (result.success) {
+<<<<<<< Updated upstream
             toast.success('视频分析完成，图片已添加到画布', {
               description: result.message,
               duration: 5000,
             })
+=======
+            toast.success('视频分析完成，关键帧已添加到画布', {
+              description: `${result.message}，将使用关键帧进行聊天`,
+              duration: 5000,
+            })
+
+            // 将关键帧添加到聊天图片列表中
+            if (result.key_frames && result.key_frames.length > 0) {
+              const keyFrameImages = result.key_frames.map((frame: any) => ({
+                file_id: frame.filename,
+                width: frame.width,
+                height: frame.height,
+                type: 'image' as const,
+                video_source: video.file_id, // 记录来源视频
+              }))
+              allKeyFrames.push(...keyFrameImages)
+              console.log(`🎯 从视频 ${video.file_id} 提取了 ${keyFrameImages.length} 个关键帧用于聊天`)
+            }
+>>>>>>> Stashed changes
           } else {
             toast.error('视频分析失败', {
               description: result.message,
             })
           }
         }
+<<<<<<< Updated upstream
+=======
+
+        // 用关键帧替换原视频文件
+        if (allKeyFrames.length > 0) {
+          console.log(`🔄 用 ${allKeyFrames.length} 个关键帧替换 ${videoFiles.length} 个视频文件`)
+          setImages(prev => [
+            ...prev.filter(item => item.type !== 'video'), // 移除视频
+            ...allKeyFrames // 添加关键帧
+          ])
+
+          // 更新文本内容，说明已替换为关键帧
+          const videoDescription = videoFiles.map(video =>
+            `视频 ${video.file_id} 已分析并提取关键帧`
+          ).join('\n')
+          text_content = text_content + '\n\n' + videoDescription
+        }
+>>>>>>> Stashed changes
       } catch (error) {
         console.error('视频分析错误:', error)
         toast.error('视频分析失败', {
@@ -318,6 +380,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 
     if (images.length > 0) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       images.forEach((image) => {
         value += `\n\n ![Attached image - width: ${image.width} height: ${image.height} filename: ${image.file_id}](/api/file/${image.file_id})`
       })
@@ -334,10 +397,15 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 =======
       const imageFiles = images.filter(item => item.type !== 'video')
       const videoFiles = images.filter(item => item.type === 'video')
+=======
+      // 现在images中只包含图片（包括从视频提取的关键帧）
+      const imageFiles = images.filter(item => item.type !== 'video')
+>>>>>>> Stashed changes
 
       if (imageFiles.length > 0) {
         text_content += `\n\n<input_images count="${imageFiles.length}">`
         imageFiles.forEach((image, index) => {
+<<<<<<< Updated upstream
           text_content += `\n<image index="${index + 1}" file_id="${image.file_id}" width="${image.width}" height="${image.height}" />`
         })
         text_content += `\n</input_images>`
@@ -364,6 +432,19 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     const videoFiles = images.filter(item => item.type === 'video')
 
     // Fetch images as base64
+=======
+          const sourceInfo = image.video_source ? ` source_video="${image.video_source}"` : ''
+          text_content += `\n<image index="${index + 1}" file_id="${image.file_id}" width="${image.width}" height="${image.height}"${sourceInfo} />`
+        })
+        text_content += `\n</input_images>`
+      }
+    }
+
+    // 现在只处理图片（包括从视频提取的关键帧）
+    const imageFiles = images.filter(item => item.type !== 'video')
+
+    // 获取图片的base64数据
+>>>>>>> Stashed changes
     const imagePromises = imageFiles.map(async (image) => {
       const response = await fetch(`/api/file/${image.file_id}`)
       const blob = await response.blob()

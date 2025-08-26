@@ -206,9 +206,28 @@ class JaazImageProvider(ImageProviderBase):
 
                 # Parse JSON data
                 json_data = await response.json()
-                print('🦄 Jaaz API response', json_data)
+                # 过滤 base64 数据后打印响应
+                filtered_data = self._filter_base64_from_response(json_data)
+                print('🦄 Jaaz API response', filtered_data)
 
                 return JaazImagesResponse(**json_data)
+
+    def _filter_base64_from_response(self, data):
+        """过滤响应中的 base64 数据，避免在日志中显示"""
+        if isinstance(data, dict):
+            filtered = {}
+            for key, value in data.items():
+                if isinstance(value, str) and value.startswith('data:'):
+                    filtered[key] = f"[base64 data - {len(value)} chars]"
+                elif isinstance(value, (dict, list)):
+                    filtered[key] = self._filter_base64_from_response(value)
+                else:
+                    filtered[key] = value
+            return filtered
+        elif isinstance(data, list):
+            return [self._filter_base64_from_response(item) for item in data]
+        else:
+            return data
 
     async def _process_response(
         self,

@@ -83,6 +83,9 @@ You MUST:
 6. For video generation based on uploaded video → use analysis insights to inform new content creation
 """
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         batch_generation_prompt = """
 

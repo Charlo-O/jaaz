@@ -23,9 +23,10 @@ class ContextInfo(TypedDict):
 
 
 def _fix_chat_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """修复聊天历史中不完整的工具调用
+    """修复聊天历史中不完整的工具调用和不支持的媒体格式
 
     根据LangGraph文档建议，移除没有对应ToolMessage的tool_calls
+    同时移除LangChain不支持的video_url类型内容项，因为聊天中应该发送关键帧图片而不是原始视频
     参考: https://langchain-ai.github.io/langgraph/troubleshooting/errors/INVALID_CHAT_HISTORY/
     """
     if not messages:
@@ -41,14 +42,17 @@ def _fix_chat_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             if tool_call_id:
                 tool_call_ids.add(tool_call_id)
 
-    # 第二遍：修复AIMessage中的tool_calls
+    # 第二遍：修复AIMessage中的tool_calls并清理不支持的媒体格式
     for msg in messages:
-        if msg.get('role') == 'assistant' and msg.get('tool_calls'):
+        # 清理消息内容中的video_url类型项（LangChain不支持）
+        cleaned_msg = _remove_video_url_from_message(msg)
+
+        if cleaned_msg.get('role') == 'assistant' and cleaned_msg.get('tool_calls'):
             # 过滤掉没有对应ToolMessage的tool_calls
             valid_tool_calls: List[Dict[str, Any]] = []
             removed_calls: List[str] = []
 
-            for tool_call in msg.get('tool_calls', []):
+            for tool_call in cleaned_msg.get('tool_calls', []):
                 tool_call_id = tool_call.get('id')
                 if tool_call_id in tool_call_ids:
                     valid_tool_calls.append(tool_call)
@@ -63,19 +67,56 @@ def _fix_chat_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
             # 更新消息
             if valid_tool_calls:
-                msg_copy = msg.copy()
+                msg_copy = cleaned_msg.copy()
                 msg_copy['tool_calls'] = valid_tool_calls
                 fixed_messages.append(msg_copy)
-            elif msg.get('content'):  # 如果没有有效的tool_calls但有content，保留消息
-                msg_copy = msg.copy()
+            elif cleaned_msg.get(
+                'content'
+            ):  # 如果没有有效的tool_calls但有content，保留消息
+                msg_copy = cleaned_msg.copy()
                 msg_copy.pop('tool_calls', None)  # 移除空的tool_calls
                 fixed_messages.append(msg_copy)
             # 如果既没有有效tool_calls也没有content，跳过这条消息
         else:
             # 非assistant消息或没有tool_calls的消息直接保留
-            fixed_messages.append(msg)
+            fixed_messages.append(cleaned_msg)
 
+    print(
+        f"📋 消息历史修复完成：原始 {len(messages)} 条 → 修复后 {len(fixed_messages)} 条"
+    )
     return fixed_messages
+
+
+def _remove_video_url_from_message(message: Dict[str, Any]) -> Dict[str, Any]:
+    """从消息中移除video_url类型的内容项
+
+    LangChain不支持video_url格式，我们应该在聊天中发送关键帧图片而不是原始视频
+    """
+    msg_copy = message.copy()
+    content = msg_copy.get('content', [])
+
+    if isinstance(content, list):
+        # 过滤掉video_url类型的内容项
+        filtered_content = []
+        removed_videos = 0
+
+        for content_item in content:
+            if (
+                isinstance(content_item, dict)
+                and content_item.get('type') == 'video_url'
+            ):
+                removed_videos += 1
+                print(f"🧹 移除video_url内容项，因为LangChain不支持该格式")
+            else:
+                filtered_content.append(content_item)
+
+        if removed_videos > 0:
+            print(
+                f"🧹 已移除 {removed_videos} 个video_url项，剩余 {len(filtered_content)} 个内容项"
+            )
+            msg_copy['content'] = filtered_content
+
+    return msg_copy
 
 
 async def langgraph_multi_agent(

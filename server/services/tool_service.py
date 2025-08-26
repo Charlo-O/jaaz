@@ -192,17 +192,23 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "tool_function": generate_image_by_flux_kontext_max_replicate,
     },
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     "generate_image_by_midjourney": {
         "display_name": "Midjourney",
         "type": "image",
         "provider": "midjourney",  
         "tool_function": generate_image_by_midjourney,
 =======
+=======
+>>>>>>> Stashed changes
     "analyze_video_by_gemini": {
         "display_name": "Video Analysis by Gemini",
         "type": "analysis",
         "provider": "google",
         "tool_function": analyze_video_by_gemini,
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     },
 }
@@ -246,7 +252,10 @@ class ToolService:
                         if tool_info.get("provider") == provider_name:
                             self.register_tool(tool_id, tool_info)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 
                     # For ModelScope: register a dynamic tool for each configured model
                     if provider_name == 'modelscope':
@@ -340,7 +349,6 @@ class ToolService:
                                     "tool_function": _run,  # type: ignore
                                 },
                             )
->>>>>>> Stashed changes
             # Register comfyui workflow tools
             if config_service.app_config.get("comfyui", {}).get("url", ""):
                 await register_comfy_tools()

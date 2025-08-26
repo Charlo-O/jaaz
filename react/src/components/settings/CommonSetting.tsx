@@ -128,12 +128,15 @@ export default function CommonSetting({
       {providerKey !== 'ollama' && (
         <div className="space-y-2">
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           <AddModelsList
             models={config.models || {}}
             onChange={handleModelsChange}
             label={t('settings:models.title')}
           />
 =======
+=======
+>>>>>>> Stashed changes
           {providerKey === 'modelscope' ? (
             <ModelScopeModelsList
               models={config.models || {}}
@@ -147,6 +150,9 @@ export default function CommonSetting({
               label={t('settings:models.title')}
             />
           )}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         </div>
       )}

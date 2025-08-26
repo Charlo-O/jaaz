@@ -267,6 +267,13 @@ async def process_video_direct(file: UploadFile = File(...), threshold: float = 
             transnetv2_service.process_video, file_path, threshold=threshold
         )
 
+<<<<<<< Updated upstream
+=======
+        # 过滤分析结果中的base64数据，避免在终端显示
+        filtered_analysis = transnetv2_service._filter_base64_from_data(analysis_result)
+        print('🎬 视频分析结果（已过滤）:', filtered_analysis)
+
+>>>>>>> Stashed changes
         # 生成缩略图
         thumbnail_path = await run_in_threadpool(
             generate_video_thumbnail, file_path, file_id
@@ -333,6 +340,14 @@ async def get_video_analysis(file_id: str):
                 analysis_result = await run_in_threadpool(
                     transnetv2_service.process_video, video_path
                 )
+<<<<<<< Updated upstream
+=======
+                # 过滤分析结果中的base64数据
+                filtered_result = transnetv2_service._filter_base64_from_data(
+                    analysis_result
+                )
+                print('🎬 视频分析结果（已过滤）:', filtered_result)
+>>>>>>> Stashed changes
                 return analysis_result
 
         raise HTTPException(status_code=404, detail="Video file not found")
@@ -535,6 +550,13 @@ async def analyze_video_to_canvas(request: Request):
             transnetv2_service.process_video, video_path, threshold=threshold
         )
 
+<<<<<<< Updated upstream
+=======
+        # 过滤分析结果中的base64数据
+        filtered_analysis = transnetv2_service._filter_base64_from_data(analysis_result)
+        print('🎬 视频分析结果（已过滤）:', filtered_analysis)
+
+>>>>>>> Stashed changes
         # 获取场景信息
         scenes = analysis_result["scene_detection"]["scenes"]
 

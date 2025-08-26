@@ -162,7 +162,14 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
       console.log('👇 addImageToExcalidraw called with:', {
         excalidrawAPI: !!excalidrawAPI,
         imageElement,
+<<<<<<< Updated upstream
         file
+=======
+        file: {
+          ...file,
+          dataURL: file.dataURL ? `[base64 data - ${file.dataURL.length} chars]` : file.dataURL
+        }
+>>>>>>> Stashed changes
       })
 
       if (!excalidrawAPI) {
@@ -366,7 +373,17 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
   const handleImageGenerated = useCallback(
     (imageData: ISocket.SessionImageGeneratedEvent) => {
+<<<<<<< Updated upstream
       console.log('👇 CanvasExcali received image_generated:', imageData)
+=======
+      console.log('👇 CanvasExcali received image_generated:', {
+        ...imageData,
+        file: imageData.file ? {
+          ...imageData.file,
+          dataURL: imageData.file.dataURL ? `[base64 data - ${imageData.file.dataURL.length} chars]` : imageData.file.dataURL
+        } : imageData.file
+      })
+>>>>>>> Stashed changes
       console.log('👇 Current canvasId:', canvasId)
       console.log('👇 Event canvas_id:', imageData.canvas_id)
       console.log('👇 Event session_id:', imageData.session_id)
@@ -400,7 +417,14 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
   const handleVideoGenerated = useCallback(
     (videoData: ISocket.SessionVideoGeneratedEvent) => {
-      console.log('👇 CanvasExcali received video_generated:', videoData)
+      console.log('👇 CanvasExcali received video_generated:', {
+        ...videoData,
+        // 如果有文件数据也进行过滤
+        file: videoData.file ? {
+          ...videoData.file,
+          dataURL: videoData.file.dataURL ? `[base64 data - ${videoData.file.dataURL.length} chars]` : videoData.file.dataURL
+        } : videoData.file
+      })
 
       // Only handle if it's for this canvas
       if (videoData.canvas_id !== canvasId) {
@@ -433,7 +457,21 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
       onChange={handleChange}
       initialData={() => {
         const data = initialData
-        console.log('👇initialData', data)
+        // 过滤 initialData 中的 base64 文件数据
+        const filteredData = data ? {
+          ...data,
+          files: data.files ? Object.keys(data.files).reduce((acc, key) => {
+            const file = data.files[key]
+            acc[key] = {
+              ...file,
+              dataURL: file.dataURL && file.dataURL.startsWith('data:') 
+                ? `[base64 data - ${file.dataURL.length} chars]`
+                : file.dataURL
+            }
+            return acc
+          }, {} as any) : data.files
+        } : data
+        console.log('👇initialData', filteredData)
         if (data?.appState) {
           data.appState = {
             ...data.appState,

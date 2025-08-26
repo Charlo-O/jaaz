@@ -361,7 +361,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const handleToolCallResult = useCallback(
     (data: TEvents['Socket::Session::ToolCallResult']) => {
-      console.log('😘🖼️tool_call_result event get', data)
+      // 过滤 base64 数据后打印工具调用结果
+      const filteredData = {
+        ...data,
+        message: {
+          ...data.message,
+          content: typeof data.message.content === 'string' && data.message.content.length > 1000 
+            ? `[filtered content - ${data.message.content.length} chars]` 
+            : data.message.content
+        }
+      }
+      console.log('😘🖼️tool_call_result event get', filteredData)
       if (data.session_id && data.session_id !== sessionId) {
         return
       }
@@ -395,7 +405,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         return
       }
 
-      console.log('⭐️dispatching image_generated', data)
+      // 过滤 base64 数据后打印图片生成事件
+      const filteredData = {
+        ...data,
+        file: data.file ? {
+          ...data.file,
+          dataURL: data.file.dataURL && data.file.dataURL.startsWith('data:') 
+            ? `[base64 data - ${data.file.dataURL.length} chars]` 
+            : data.file.dataURL
+        } : data.file
+      }
+      console.log('⭐️dispatching image_generated', filteredData)
       setPending('image')
     },
     [canvasId, sessionId]
@@ -408,7 +428,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       setMessages(() => {
-        console.log('👇all_messages', data.messages)
+        // 过滤消息中的 base64 数据
+        const filteredMessages = data.messages.map((msg: any) => {
+          if (msg.tool_calls) {
+            return {
+              ...msg,
+              tool_calls: msg.tool_calls.map((tc: any) => ({
+                ...tc,
+                result: typeof tc.result === 'string' && tc.result.length > 1000
+                  ? `[filtered result - ${tc.result.length} chars]`
+                  : tc.result
+              }))
+            }
+          }
+          return msg
+        })
+        console.log('👇all_messages', filteredMessages)
         return data.messages
       })
       setMessages(mergeToolCallResult(data.messages))

@@ -28,6 +28,31 @@ class TransNetV2Service:
         )
         self._initialize_model()
 
+<<<<<<< Updated upstream
+=======
+    def _filter_base64_from_data(self, data):
+        """过滤数据中的 base64 编码，避免在终端中显示
+
+        这个函数与图片提供商的过滤机制保持一致，
+        确保视频处理时也不会在终端显示base64数据
+        """
+        if isinstance(data, dict):
+            filtered = {}
+            for key, value in data.items():
+                # 只过滤超过10MB的巨大数据
+                if isinstance(value, str) and len(value) > 10 * 1024 * 1024:  # 10MB
+                    filtered[key] = f"[filtered video data - {len(value)} chars]"
+                elif isinstance(value, (dict, list)):
+                    filtered[key] = self._filter_base64_from_data(value)
+                else:
+                    filtered[key] = value
+            return filtered
+        elif isinstance(data, list):
+            return [self._filter_base64_from_data(item) for item in data]
+        else:
+            return data
+
+>>>>>>> Stashed changes
     def _initialize_model(self):
         """初始化TransNetV2模型"""
         print("🔍 开始初始化TransNetV2模型...")

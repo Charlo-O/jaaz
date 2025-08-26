@@ -103,7 +103,26 @@ export async function processVideo(file: File, threshold: number = 0.5): Promise
   return await response.json()
 }
 
+<<<<<<< Updated upstream
 export async function analyzeVideoAndAddToCanvas(fileId: string, canvasId: string, threshold: number = 0.5, sessionId?: string): Promise<{ success: boolean, message: string, analysis?: any }> {
+=======
+export interface VideoAnalysisResponse {
+  success: boolean
+  message: string
+  analysis?: any
+  key_frames?: Array<{
+    filename: string
+    url: string
+    scene_index: number
+    width: number
+    height: number
+  }>
+  total_scenes?: number
+  total_key_frames?: number
+}
+
+export async function analyzeVideoAndAddToCanvas(fileId: string, canvasId: string, threshold: number = 0.5, sessionId?: string): Promise<VideoAnalysisResponse> {
+>>>>>>> Stashed changes
   const response = await fetch('/api/analyze_video_to_canvas', {
     method: 'POST',
     headers: {

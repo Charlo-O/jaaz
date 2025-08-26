@@ -17,10 +17,7 @@
     "build:linux": "electron-builder --linux",
     "build:ts": "cd electron && tsc",
     "watch:ts": "cd electron && tsc --watch",
-    "clean:ts": "cd electron && rm -rf dist",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:watch": "vitest --watch"
+    "clean:ts": "cd electron && rm -rf dist"
   },
   "publish": "always",
   "build": {
@@ -88,8 +85,7 @@
     "electron": "^35.1.0",
     "electron-builder": "^24.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.1"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@google/gemini-cli-core": "^0.1.9",
