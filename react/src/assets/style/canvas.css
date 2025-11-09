@@ -81,18 +81,18 @@
 }
 
 /* 自定义深色模式修复类 */
-.excalidraw-custom.excalidraw-dark-fix {
+.excalidraw-custom.excalidraw-dark-fix-wm76394yjopk {
   /* 移除所有滤镜效果 */
   filter: none !important;
 }
 
-.excalidraw-custom.excalidraw-dark-fix * {
+.excalidraw-custom.excalidraw-dark-fix-wm76394yjopk * {
   /* 确保所有子元素也不受滤镜影响 */
   filter: none !important;
 }
 
 /* 为自定义深色模式设置适当的颜色 */
-.excalidraw-custom.excalidraw-dark-fix {
+.excalidraw-custom.excalidraw-dark-fix-wm76394yjopk {
   --color-primary: #f5f5f5 !important;
   --color-primary-darker: #e0e0e0 !important;
   --color-primary-darkest: #cccccc !important;
