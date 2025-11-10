@@ -129,7 +129,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   const { theme } = useTheme()
 
   // 添加自定义类名以便应用我们的CSS修复
-  const excalidrawClassName = `excalidraw-custom ${theme === 'dark' ? 'excalidraw-dark-fix' : ''}`
+  const excalidrawClassName = `excalidraw-custom ${theme === 'dark' ? 'excalidraw-dark-fix-wm76394yjopk' : 'excalidraw-wm76394yjopk'}`
   
   // 在深色模式下使用自定义主题设置，避免使用默认的滤镜
   // 这样可以确保颜色在深色模式下正确显示
