@@ -66,6 +66,22 @@ Star us, and you will receive all release notifications from GitHub without any 
 
 ## ✨ Key Features
 
+🎵 AI Music Generation [New in v2.0]
+Create full songs, lyrics, and instrumentals using Suno AI directly within the chat. 
+ - Auto-rendering of audio players in chat
+ - Support for custom lyrics and styles
+
+📹 Smart Video Analysis [New in v2.0]
+Advanced video processing capabilities powered by TransNetV2.
+ - Automatic scene detection
+ - Intelligent keyframe extraction
+ - Video content analysis
+
+🎨 Expanded Model Support
+ - **ModelScope (魔搭)** integration for high-quality image generation
+ - Enhanced support for **Suno** (Music)
+ - Improved video provider selection (Volces, Kling, Hailuo, etc.)
+
 🎬 One-Prompt Image & Video Generation
 Turn one prompt into complete images or videos in seconds.
 
