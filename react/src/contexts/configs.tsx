@@ -63,9 +63,18 @@ export const ConfigsProvider = ({
     if (disabledToolsJson) {
       try {
         const disabledToolIds: string[] = JSON.parse(disabledToolsJson)
+        // Only disable tools that exist in current toolList
+        // This ensures new tools are automatically selected
+        const validDisabledIds = disabledToolIds.filter(id =>
+          toolList.some(t => t.id === id)
+        )
+        // Update localStorage to remove stale disabled IDs
+        if (validDisabledIds.length !== disabledToolIds.length) {
+          localStorage.setItem('disabled_tool_ids', JSON.stringify(validDisabledIds))
+        }
         // filter out disabled tools
         currentSelectedTools = toolList.filter(
-          (t) => !disabledToolIds.includes(t.id)
+          (t) => !validDisabledIds.includes(t.id)
         )
       } catch (error) {
         console.error(error)

@@ -53,18 +53,28 @@ const ToolCallTag: React.FC<ToolCallTagProps> = ({
   try {
     parsedArgs = JSON.parse(inputs)
   } catch (error) {
-    console.error('Error parsing args:', error, 'Raw input:', inputs)
-    // 尝试清理输入字符串，移除可能的额外内容
+    // 尝试清理输入字符串，处理不完整的 JSON
     try {
-      const cleanedInput = inputs.trim()
+      let cleanedInput = inputs.trim()
+
+      // 如果不是以 { 开头，尝试添加开头
+      if (!cleanedInput.startsWith('{')) {
+        // 检查是否是截断的 JSON，尝试添加 {"prompt": 前缀
+        if (cleanedInput.includes('"aspect_ratio"')) {
+          cleanedInput = '{"prompt": "' + cleanedInput
+        }
+      }
+
+      // 移除末尾的 null 或其他无效字符
+      cleanedInput = cleanedInput.replace(/}null$/, '}').replace(/}\s*null\s*$/, '}')
+
       const jsonEndIndex = cleanedInput.lastIndexOf('}')
       if (jsonEndIndex > 0) {
         const jsonPart = cleanedInput.substring(0, jsonEndIndex + 1)
         parsedArgs = JSON.parse(jsonPart)
-        console.log('Successfully parsed cleaned JSON:', jsonPart)
       }
     } catch (cleanError) {
-      console.error('Failed to parse even after cleaning:', cleanError)
+      // 静默失败，不输出错误日志（流式传输时这是正常的）
     }
   }
 

@@ -36,6 +36,10 @@ export const PROVIDER_NAME_MAPPING: {
     name: 'Volces',
     icon: 'https://portal.volccdn.com/obj/volcfe/misc/favicon.png',
   },
+  modelscope: {
+    name: 'ModelScope',
+    icon: 'https://avatars.githubusercontent.com/u/108607198?s=200&v=4',
+  },
   comfyui: {
     name: 'ComfyUI',
     icon: 'https://framerusercontent.com/images/3cNQMWKzIhIrQ5KErBm7dSmbd2w.png',
@@ -44,13 +48,13 @@ export const PROVIDER_NAME_MAPPING: {
 
 // Tool call name mapping
 export const TOOL_CALL_NAME_MAPPING: { [key in ToolCallFunctionName]: string } =
-  {
-    generate_image: 'Generate Image',
-    prompt_user_multi_choice: 'Prompt Multi-Choice',
-    prompt_user_single_choice: 'Prompt Single-Choice',
-    write_plan: 'Write Plan',
-    finish: 'Finish',
-  }
+{
+  generate_image: 'Generate Image',
+  prompt_user_multi_choice: 'Prompt Multi-Choice',
+  prompt_user_single_choice: 'Prompt Single-Choice',
+  write_plan: 'Write Plan',
+  finish: 'Finish',
+}
 
 export const LOGO_URL = 'https://jaaz.app/favicon.ico'
 

@@ -24,6 +24,18 @@ export type TMaterialAddImagesToChatEvent = {
   height?: number
 }[]
 
+export type TVideoKeyframesEvent = {
+  keyframes: {
+    file_id: string
+    url: string
+    width: number
+    height: number
+    frame_index: number
+    timestamp: number
+  }[]
+  canvasId: string
+}
+
 export type TEvents = {
   // ********** Socket events - Start **********
   'Socket::Session::Error': ISocket.SessionErrorEvent
@@ -50,6 +62,10 @@ export type TEvents = {
   // ********** Material events - Start **********
   'Material::AddImagesToChat': TMaterialAddImagesToChatEvent
   // ********** Material events - End **********
+
+  // ********** Video events - Start **********
+  'Video::KeyframesToCanvas': TVideoKeyframesEvent
+  // ********** Video events - End **********
 }
 
 export const eventBus = mitt<TEvents>()

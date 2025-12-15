@@ -1,6 +1,6 @@
 import { cancelChat } from '@/api/chat'
 import { cancelMagicGenerate } from '@/api/magic'
-import { uploadImage } from '@/api/upload'
+import { uploadImage, extractKeyframesFromVideo, VideoKeyframe } from '@/api/upload'
 import { Button } from '@/components/ui/button'
 import { useConfigs } from '@/contexts/configs'
 import {
@@ -23,6 +23,7 @@ import {
   RectangleVertical,
   ChevronDown,
   Hash,
+  Video,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Textarea, { TextAreaRef } from 'rc-textarea'
@@ -85,6 +86,8 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
   const MAX_QUANTITY = 30
 
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false)
 
   // 充值按钮组件
   const RechargeContent = useCallback(() => (
@@ -141,6 +144,56 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       }
     },
     [uploadImageMutation]
+  )
+
+  const handleVideoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (!files || files.length === 0) return
+
+      const file = files[0]
+      setIsAnalyzingVideo(true)
+
+      toast.info('正在分析视频并提取关键帧...', {
+        duration: 10000,
+      })
+
+      try {
+        const result = await extractKeyframesFromVideo(file, {
+          mode: 'transnet',
+          numFrames: 10,
+        })
+
+        if (result.keyframes && result.keyframes.length > 0) {
+          // 将关键帧添加到图片列表
+          const newImages = result.keyframes.map((kf) => ({
+            file_id: kf.file_id,
+            width: kf.width,
+            height: kf.height,
+          }))
+
+          setImages((prev) => [...prev, ...newImages])
+
+          toast.success(`成功提取 ${result.keyframes.length} 个关键帧`, {
+            description: result.warning || `分析模式: ${result.mode}`,
+          })
+        } else {
+          toast.warning('未能从视频中提取关键帧')
+        }
+      } catch (error) {
+        console.error('Video analysis failed:', error)
+        toast.error('视频分析失败', {
+          description: String(error),
+        })
+      } finally {
+        setIsAnalyzingVideo(false)
+        // 清空 input 以便可以再次选择同一文件
+        if (videoInputRef.current) {
+          videoInputRef.current.value = ''
+        }
+      }
+    },
+    []
   )
 
   const handleCancelChat = useCallback(async () => {
@@ -472,12 +525,33 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             onChange={handleImagesUpload}
             hidden
           />
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleVideoUpload}
+            hidden
+          />
           <Button
             variant="outline"
             size="sm"
             onClick={() => imageInputRef.current?.click()}
+            title="上传图片"
           >
             <PlusIcon className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => videoInputRef.current?.click()}
+            disabled={isAnalyzingVideo}
+            title="上传视频提取关键帧"
+          >
+            {isAnalyzingVideo ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Video className="size-4" />
+            )}
           </Button>
 
           <ModelSelectorV3 />

@@ -7,8 +7,8 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
 print('Importing routers')
-from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation
-from fastapi.responses import FileResponse
+from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, video_router
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 import argparse
@@ -56,6 +56,7 @@ app.include_router(image_router.router)
 app.include_router(ssl_test.router)
 app.include_router(chat_router.router)
 app.include_router(tool_confirmation.router)
+app.include_router(video_router.router)
 
 # Mount the React build directory
 react_build_dir = os.environ.get('UI_DIST_DIR', os.path.join(
@@ -80,7 +81,13 @@ if os.path.exists(static_site):
 
 @app.get("/")
 async def serve_react_app():
-    response = FileResponse(os.path.join(react_build_dir, "index.html"))
+    index_path = os.path.join(react_build_dir, "index.html")
+    if not os.path.exists(index_path):
+        return PlainTextResponse(
+            "UI build not found. In dev, run the Vite dev server (npm run dev:react) or build UI (cd react && npm run build).",
+            status_code=404,
+        )
+    response = FileResponse(index_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"

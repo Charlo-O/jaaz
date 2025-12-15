@@ -36,7 +36,7 @@ const ModelSelectorV3: React.FC<ModelSelectorV3Props> = ({
     allTools,
   } = useConfigs()
 
-  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'text'>('image')
+  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'music' | 'text'>('image')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const { t } = useTranslation()
 
@@ -81,7 +81,7 @@ const ModelSelectorV3: React.FC<ModelSelectorV3Props> = ({
   const groupedTools = groupModelsByProvider(allTools)
 
   // Filter tools by type
-  const getToolsByType = (type: 'image' | 'video') => {
+  const getToolsByType = (type: 'image' | 'video' | 'music') => {
     const filteredTools = allTools.filter(tool => tool.type === type)
     return groupModelsByProvider(filteredTools)
   }
@@ -168,16 +168,19 @@ const ModelSelectorV3: React.FC<ModelSelectorV3Props> = ({
       setSelectedTools(allTools)
       localStorage.setItem('disabled_tool_ids', JSON.stringify([]))
     } else {
-      // 关闭auto模式时，默认选中image和video的第一个工具
+      // 关闭auto模式时，默认选中image、video和music的第一个工具
       const imageTools = allTools.filter(tool => tool.type === 'image')
       const videoTools = allTools.filter(tool => tool.type === 'video')
+      const musicTools = allTools.filter(tool => tool.type === 'music')
 
       const firstImageTool = imageTools.length > 0 ? imageTools[0] : null
       const firstVideoTool = videoTools.length > 0 ? videoTools[0] : null
+      const firstMusicTool = musicTools.length > 0 ? musicTools[0] : null
 
       const selectedToolsList: ToolInfo[] = []
       if (firstImageTool) selectedToolsList.push(firstImageTool)
       if (firstVideoTool) selectedToolsList.push(firstVideoTool)
+      if (firstMusicTool) selectedToolsList.push(firstMusicTool)
 
       if (selectedToolsList.length > 0) {
         setSelectedTools(selectedToolsList)
@@ -232,6 +235,7 @@ const ModelSelectorV3: React.FC<ModelSelectorV3Props> = ({
   const tabs = [
     { id: 'image', label: t('chat:modelSelector.tabs.image') },
     { id: 'video', label: t('chat:modelSelector.tabs.video') },
+    { id: 'music', label: t('chat:modelSelector.tabs.music') },
     { id: 'text', label: t('chat:modelSelector.tabs.text') }
   ] as const
 

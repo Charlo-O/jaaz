@@ -51,6 +51,8 @@ from tools.generate_image_by_recraft_v3_replicate import (
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
 from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
+from tools.modelscope_dynamic import build_modelscope_tool
+from tools.generate_music_by_suno import generate_music_by_suno
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -190,6 +192,24 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "replicate",
         "tool_function": generate_image_by_flux_kontext_max_replicate,
     },
+    # ---------------
+    # ModelScope Tools
+    # ---------------
+    # "generate_image_by_modelscope": {
+    #     "display_name": "ModelScope Image",
+    #     "type": "image",
+    #     "provider": "modelscope",
+    #     "tool_function": generate_image_by_modelscope,
+    # },
+    # ---------------
+    # Suno Music Tools
+    # ---------------
+    "generate_music_by_suno": {
+        "display_name": "Suno Music",
+        "type": "music",
+        "provider": "suno",
+        "tool_function": generate_music_by_suno,
+    },
 }
 
 
@@ -229,6 +249,28 @@ class ToolService:
             # Register comfyui workflow tools
             if config_service.app_config.get("comfyui", {}).get("url", ""):
                 await register_comfy_tools()
+
+            # Register ModelScope dynamic tools
+            modelscope_config = config_service.app_config.get("modelscope", {})
+            if modelscope_config.get("api_key"):
+                models = modelscope_config.get("models", {})
+                for model_name, model_info in models.items():
+                    if model_info.get("type") == "image":
+                        try:
+                            tool_fn = build_modelscope_tool(model_name)
+                            tool_id = tool_fn.name
+                            self.register_tool(
+                                tool_id,
+                                {
+                                    "provider": "modelscope",
+                                    "tool_function": tool_fn,
+                                    "display_name": model_name,
+                                    "type": "image",
+                                }
+                            )
+                        except Exception as e:
+                            print(f"❌ Failed to register ModelScope tool for {model_name}: {e}")
+
         except Exception as e:
             print(f"❌ Failed to initialize tool service: {e}")
             traceback.print_stack()

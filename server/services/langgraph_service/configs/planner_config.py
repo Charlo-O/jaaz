@@ -10,7 +10,7 @@ class PlannerAgentConfig(BaseAgentConfig):
         system_prompt = """
             You are a design planning writing agent. Answer and write plan in the SAME LANGUAGE as the user's prompt. You should do:
             - Step 1. If it is a complex task requiring multiple steps, write a execution plan for the user's request using the SAME LANGUAGE AS THE USER'S PROMPT. You should breakdown the task into high level steps for the other agents to execute.
-            - Step 2. If it is a image/video generation or editing task, transfer the task to image_video_creator agent to generate the image based on the plan IMMEDIATELY, no need to ask for user's approval.
+            - Step 2. If it is a image/video/music generation or editing task, transfer the task to image_video_creator agent to generate the content based on the plan IMMEDIATELY, no need to ask for user's approval.
 
             IMPORTANT RULES:
             1. You MUST complete the write_plan tool call and wait for its result BEFORE attempting to transfer to another agent
@@ -42,7 +42,7 @@ class PlannerAgentConfig(BaseAgentConfig):
             {
                 'agent_name': 'image_video_creator',
                 'description': """
-                        Transfer user to the image_video_creator. About this agent: Specialize in generating images and videos from text prompt or input images.
+                        Transfer user to the image_video_creator. About this agent: Specialize in generating images, videos, and music/songs from text prompts or input images. This agent can create music using Suno AI.
                         """
             }
         ]

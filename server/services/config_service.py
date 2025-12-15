@@ -9,7 +9,7 @@ from typing import Dict, TypedDict, Literal, Optional
 
 
 class ModelConfig(TypedDict, total=False):
-    type: Literal["text", "image", "video"]
+    type: Literal["text", "image", "video", "music"]
     is_custom: Optional[bool]
     is_disabled: Optional[bool]
 
@@ -58,6 +58,15 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
         'url': 'https://api.openai.com/v1/',
         'api_key': '',
         'max_tokens': 8192,
+    },
+    'suno': {
+        'models': {
+            'chirp-v4': {'type': 'music'},
+            'chirp-v3-5': {'type': 'music'},
+            'chirp-auk': {'type': 'music'},
+        },
+        'url': 'https://api.no1api.com',
+        'api_key': '',
     },
 
 }
@@ -125,14 +134,17 @@ class ConfigService:
                 if provider not in DEFAULT_PROVIDERS_CONFIG:
                     provider_config['is_custom'] = True
                 self.app_config[provider] = provider_config
-                # image/video models are hardcoded in the default provider config
+                # Merge default models with user-configured models
                 provider_models = DEFAULT_PROVIDERS_CONFIG.get(
-                    provider, {}).get('models', {})
+                    provider, {}).get('models', {}).copy()
                 for model_name, model_config in provider_config.get('models', {}).items():
-                    # Only text model can be self added
-                    if model_config.get('type') == 'text' and model_name not in provider_models:
+                    # Keep all user-configured models (text, image, video)
+                    if model_name not in provider_models:
                         provider_models[model_name] = model_config
                         provider_models[model_name]['is_custom'] = True
+                    else:
+                        # Merge user config with default config
+                        provider_models[model_name].update(model_config)
                 self.app_config[provider]['models'] = provider_models
 
             # 确保 jaaz URL 始终正确

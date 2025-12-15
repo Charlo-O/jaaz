@@ -4,16 +4,23 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export type ModelItem = {
   name: string
-  type: 'text' | 'image' | 'video'
+  type: 'text' | 'image' | 'video' | 'music'
 }
 
 interface ModelsListProps {
-  models: Record<string, { type?: 'text' | 'image' | 'video' }>
+  models: Record<string, { type?: 'text' | 'image' | 'video' | 'music' }>
   onChange: (
-    models: Record<string, { type?: 'text' | 'image' | 'video' }>
+    models: Record<string, { type?: 'text' | 'image' | 'video' | 'music' }>
   ) => void
   label?: string
 }
@@ -25,12 +32,13 @@ export default function AddModelsList({
 }: ModelsListProps) {
   const [modelItems, setModelItems] = useState<ModelItem[]>([])
   const [newModelName, setNewModelName] = useState('')
+  const [newModelType, setNewModelType] = useState<'text' | 'image' | 'video' | 'music'>('text')
   const [openAddModelDialog, setOpenAddModelDialog] = useState(false)
 
   useEffect(() => {
     const modelItems = Object.entries(models).map(([name, config]) => ({
       name,
-      type: (config.type || 'text') as 'text' | 'image' | 'video',
+      type: (config.type || 'text') as 'text' | 'image' | 'video' | 'music',
     }))
     setModelItems(modelItems.length > 0 ? modelItems : [])
   }, [models])
@@ -41,7 +49,7 @@ export default function AddModelsList({
       const validModels = items.filter((model) => model.name.trim())
       const modelsConfig: Record<
         string,
-        { type?: 'text' | 'image' | 'video' }
+        { type?: 'text' | 'image' | 'video' | 'music' }
       > = {}
 
       validModels.forEach((model) => {
@@ -57,11 +65,12 @@ export default function AddModelsList({
     if (newModelName) {
       const newItems = [
         ...modelItems,
-        { name: newModelName, type: 'text' as const },
+        { name: newModelName, type: newModelType },
       ]
       setModelItems(newItems)
       notifyChange(newItems)
       setNewModelName('')
+      setNewModelType('text')
       setOpenAddModelDialog(false)
     }
   }
@@ -86,18 +95,34 @@ export default function AddModelsList({
           </DialogTrigger>
           <DialogContent>
             <div className="space-y-5">
-              <Label>Model Name</Label>
-              <Input
-                type="text"
-                placeholder="openai/gpt-4o"
-                value={newModelName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddModel()
-                  }
-                }}
-                onChange={(e) => setNewModelName(e.target.value)}
-              />
+              <div className="space-y-2">
+                <Label>Model Name</Label>
+                <Input
+                  type="text"
+                  placeholder="openai/gpt-4o"
+                  value={newModelName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddModel()
+                    }
+                  }}
+                  onChange={(e) => setNewModelName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Model Type</Label>
+                <Select value={newModelType} onValueChange={(v) => setNewModelType(v as 'text' | 'image' | 'video' | 'music')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Text (文本)</SelectItem>
+                    <SelectItem value="image">Image (图像)</SelectItem>
+                    <SelectItem value="video">Video (视频)</SelectItem>
+                    <SelectItem value="music">Music (音乐)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button type="button" onClick={handleAddModel} className="w-full">
                 Add Model
               </Button>

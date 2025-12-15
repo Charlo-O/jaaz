@@ -23,7 +23,7 @@ const CommonDialogContent: React.FC<CommonDialogProps> = ({
     z: 0,
     transition: {
       duration: 0.5,
-      ease: [0.17, 0.67, 0.51, 1],
+      ease: [0.17, 0.67, 0.51, 1] as [number, number, number, number],
       opacity: {
         delay: 0.2,
         duration: 0.4,
@@ -40,7 +40,7 @@ const CommonDialogContent: React.FC<CommonDialogProps> = ({
     rotateX: 25,
     transition: {
       duration: 0.3,
-      ease: [0.67, 0.17, 0.62, 0.64],
+      ease: [0.67, 0.17, 0.62, 0.64] as [number, number, number, number],
     },
   }
 

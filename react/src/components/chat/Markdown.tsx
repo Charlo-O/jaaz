@@ -144,6 +144,34 @@ const NonMemoizedMarkdown: React.FC<MarkdownProps> = ({ children }) => {
       )
     },
     a: ({ node, children, ...props }) => {
+      const href = props.href || ''
+      // Check if the link is an audio file
+      const isAudioLink = /\.(mp3|wav|ogg|m4a|aac|flac|webm)(\?.*)?$/i.test(href) ||
+        href.includes('suno.ai') && href.includes('.mp3')
+      
+      if (isAudioLink) {
+        return (
+          <span className="block my-2">
+            <audio
+              controls
+              preload="metadata"
+              className="w-full max-w-md rounded-lg"
+              src={href}
+            >
+              Your browser does not support the audio element.
+            </audio>
+            <a
+              className="text-xs text-blue-500 hover:underline break-all mt-1 block"
+              target="_blank"
+              rel="noreferrer"
+              href={href}
+            >
+              {children}
+            </a>
+          </span>
+        )
+      }
+      
       return (
         <a
           className="text-blue-500 hover:underline break-all"

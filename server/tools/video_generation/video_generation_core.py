@@ -63,12 +63,40 @@ async def generate_video_with_provider(
             List[ModelInfo], ctx.get('model_info', {}).get(model_name, []))
 
         if model_info_list == []:
-            # video registed as tool
-            model_info_list: List[ModelInfo] = cast(
-                List[ModelInfo], ctx.get('tool_list', {}))
+            # video registered as tool - filter only video type tools
+            all_tools = ctx.get('tool_list', [])
+            model_info_list = cast(
+                List[ModelInfo], 
+                [tool for tool in all_tools if tool.get('type') == 'video']
+            )
 
         # Use get_default_provider which already handles Jaaz prioritization
         provider_name = get_default_provider(model_info_list)
+
+        # Guardrail: ensure selected provider is a registered video provider
+        available_providers = set(VideoProviderBase.get_available_providers())
+        if provider_name not in available_providers:
+            # Try to find a valid provider from the provided model/tool list
+            candidate = None
+            for info in model_info_list:
+                if isinstance(info, dict):
+                    p = info.get('provider')
+                    if isinstance(p, str) and p in available_providers:
+                        candidate = p
+                        break
+
+            if candidate:
+                provider_name = candidate
+            else:
+                # Fall back to common providers if available
+                if 'volces' in available_providers:
+                    provider_name = 'volces'
+                elif 'jaaz' in available_providers:
+                    provider_name = 'jaaz'
+                elif len(available_providers) > 0:
+                    provider_name = sorted(list(available_providers))[0]
+                else:
+                    raise Exception('No available video providers registered')
 
         print(f"🎥 Using provider: {provider_name} for {model_name}")
 

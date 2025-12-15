@@ -51,6 +51,7 @@
     "tabs": {
       "image": "图像",
       "video": "视频",
+      "music": "音乐",
       "text": "文本"
     }
   }

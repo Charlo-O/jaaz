@@ -33,9 +33,11 @@ class AgentManager:
         # 为不同类型的智能体过滤合适的工具
         image_tools =  [tool for tool in tool_list if tool.get('type') == 'image']
         video_tools = [tool for tool in tool_list if tool.get('type') == 'video']
+        music_tools = [tool for tool in tool_list if tool.get('type') == 'music']
 
         print(f"📸 图像工具: {image_tools}")
         print(f"🎬 视频工具: {video_tools}")
+        print(f"🎵 音乐工具: {music_tools}")
 
         planner_config = PlannerAgentConfig()
         planner_agent = AgentManager._create_langgraph_agent(
@@ -89,6 +91,10 @@ class AgentManager:
             tool = tool_service.get_tool(tool_json['id'])
             if tool:
                 business_tools.append(tool)
+            else:
+                print(f"⚠️ 工具未找到: {tool_json['id']}")
+        
+        print(f"🔧 Agent '{config.name}' 加载的业务工具: {[t.name for t in business_tools]}")
 
         # 创建并返回 LangGraph 智能体
         return create_react_agent(

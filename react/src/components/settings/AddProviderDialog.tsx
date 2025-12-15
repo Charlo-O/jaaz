@@ -93,6 +93,18 @@ const PROVIDER_OPTIONS = [
     },
   },
   {
+    value: 'modelscope',
+    label: '魔搭 (ModelScope)',
+    data: {
+      apiUrl: 'https://api-inference.modelscope.cn/v1/',
+      models: {
+        'Tongyi-MAI/Z-Image-Turbo': { type: 'image' },
+        'black-forest-labs/FLUX.1-schnell': { type: 'image' },
+        'stabilityai/stable-diffusion-3.5-large': { type: 'image' },
+      },
+    },
+  },
+  {
     value: 'GoogleVertex',
     label: 'GoogleVertex',
     data: {
@@ -142,7 +154,7 @@ export default function AddProviderDialog({
   const [apiUrl, setApiUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [models, setModels] = useState<
-    Record<string, { type?: 'text' | 'image' | 'video' }>
+    Record<string, { type?: 'text' | 'image' | 'video' | 'music' }>
   >({})
 
   const isMediaOnlyProvider =

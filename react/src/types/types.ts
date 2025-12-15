@@ -65,7 +65,7 @@ export type LLMConfig = {
   models: Record<
     string,
     {
-      type?: 'text' | 'image' | 'video'
+      type?: 'text' | 'image' | 'video' | 'music'
       is_custom?: boolean
       is_disabled?: boolean
     }

@@ -1,7 +1,7 @@
 export type ModelInfo = {
   provider: string
   model: string
-  type: 'text' | 'image' | 'tool' | 'video'
+  type: 'text' | 'image' | 'tool' | 'video' | 'music'
   url: string
 }
 
@@ -9,7 +9,7 @@ export type ToolInfo = {
   provider: string
   id: string
   display_name?: string | null
-  type?: 'image' | 'tool' | 'video'
+  type?: 'image' | 'tool' | 'video' | 'music'
 }
 
 export async function listModels(): Promise<{
