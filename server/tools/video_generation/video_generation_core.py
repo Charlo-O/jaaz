@@ -6,9 +6,14 @@ Contains the main orchestration logic for video generation across different prov
 import traceback
 from typing import List, cast, Optional, Any
 from models.config_model import ModelInfo
-from ..video_providers.video_base_provider import get_default_provider, VideoProviderBase
+from ..video_providers.video_base_provider import (
+    get_default_provider,
+    VideoProviderBase,
+)
+
 # Import all providers to ensure automatic registration (don't delete these imports)
 from ..video_providers.volces_provider import VolcesVideoProvider  # type: ignore
+from ..video_providers.mjproxy_provider import MJProxyVideoProvider  # type: ignore
 from .video_canvas_utils import (
     send_video_start_notification,
     send_video_error_notification,
@@ -26,7 +31,7 @@ async def generate_video_with_provider(
     config: Any,
     input_images: Optional[list[str]] = None,
     camera_fixed: bool = True,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> str:
     """
     Universal video generation function supporting different models and providers
@@ -47,27 +52,29 @@ async def generate_video_with_provider(
     """
     model_name = model.split(
         # Some model names contain "/", like "openai/gpt-image-1", need to handle
-        '/')[-1]
-    print(f'🛠️ Video Generation {model_name} tool_call_id', tool_call_id)
-    ctx = config.get('configurable', {})
-    canvas_id = ctx.get('canvas_id', '')
-    session_id = ctx.get('session_id', '')
-    print(f'🛠️ canvas_id {canvas_id} session_id {session_id}')
+        "/"
+    )[-1]
+    print(f"🛠️ Video Generation {model_name} tool_call_id", tool_call_id)
+    ctx = config.get("configurable", {})
+    canvas_id = ctx.get("canvas_id", "")
+    session_id = ctx.get("session_id", "")
+    print(f"🛠️ canvas_id {canvas_id} session_id {session_id}")
 
     # Inject the tool call id into the context
-    ctx['tool_call_id'] = tool_call_id
+    ctx["tool_call_id"] = tool_call_id
 
     try:
         # Determine provider selection
         model_info_list: List[ModelInfo] = cast(
-            List[ModelInfo], ctx.get('model_info', {}).get(model_name, []))
+            List[ModelInfo], ctx.get("model_info", {}).get(model_name, [])
+        )
 
         if model_info_list == []:
             # video registered as tool - filter only video type tools
-            all_tools = ctx.get('tool_list', [])
+            all_tools = ctx.get("tool_list", [])
             model_info_list = cast(
-                List[ModelInfo], 
-                [tool for tool in all_tools if tool.get('type') == 'video']
+                List[ModelInfo],
+                [tool for tool in all_tools if tool.get("type") == "video"],
             )
 
         # Use get_default_provider which already handles Jaaz prioritization
@@ -80,7 +87,7 @@ async def generate_video_with_provider(
             candidate = None
             for info in model_info_list:
                 if isinstance(info, dict):
-                    p = info.get('provider')
+                    p = info.get("provider")
                     if isinstance(p, str) and p in available_providers:
                         candidate = p
                         break
@@ -89,14 +96,14 @@ async def generate_video_with_provider(
                 provider_name = candidate
             else:
                 # Fall back to common providers if available
-                if 'volces' in available_providers:
-                    provider_name = 'volces'
-                elif 'jaaz' in available_providers:
-                    provider_name = 'jaaz'
+                if "volces" in available_providers:
+                    provider_name = "volces"
+                elif "jaaz" in available_providers:
+                    provider_name = "jaaz"
                 elif len(available_providers) > 0:
                     provider_name = sorted(list(available_providers))[0]
                 else:
-                    raise Exception('No available video providers registered')
+                    raise Exception("No available video providers registered")
 
         print(f"🎥 Using provider: {provider_name} for {model_name}")
 
@@ -106,7 +113,7 @@ async def generate_video_with_provider(
         # Send start notification
         await send_video_start_notification(
             session_id,
-            f"Starting video generation using {model_name} via {provider_name}..."
+            f"Starting video generation using {model_name} via {provider_name}...",
         )
 
         # Process input images for the provider
@@ -125,7 +132,7 @@ async def generate_video_with_provider(
             aspect_ratio=aspect_ratio,
             input_images=processed_input_images,
             camera_fixed=camera_fixed,
-            **kwargs
+            **kwargs,
         )
 
         # Process video result (save, update canvas, notify)
@@ -133,7 +140,7 @@ async def generate_video_with_provider(
             video_url=video_url,
             session_id=session_id,
             canvas_id=canvas_id,
-            provider_name=f"{model_name} ({provider_name})"
+            provider_name=f"{model_name} ({provider_name})",
         )
 
     except Exception as e:
@@ -145,5 +152,4 @@ async def generate_video_with_provider(
         await send_video_error_notification(session_id, error_message)
 
         # Re-raise the exception for proper error handling
-        raise Exception(
-            f"{model_name} video generation failed: {error_message}")
+        raise Exception(f"{model_name} video generation failed: {error_message}")

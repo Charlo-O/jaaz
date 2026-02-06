@@ -166,62 +166,64 @@ Please contact via email: aifoxdw@gmail.com
 <img width="500" alt="Screenshot 2025-06-02 at 3 51 56 AM" src="https://github.com/user-attachments/assets/4a9eb8d2-41b4-44ff-9b17-6db937af56d2" />
 
 
-## Manual Install (For Linux or local builds)
+## Run From Source
 
-🟠 **Need Python version >=3.12**
+🟠 Requirements: **Node.js 20+** and **Python >= 3.12**
 
-First git clone this repo:
+### 1) Install dependencies
 
-`git clone https://github.com/11cafe/localart`
+```bash
+# Root deps (Electron, tooling)
+npm install
 
-`cd react`
+# UI deps
+cd react
+npm install --force
+cd ..
 
-`npm install --force`
+# Python deps
+cd server
+pip install -r requirements.txt
+cd ..
+```
 
-`npx vite build`
+### 2) Development (recommended)
 
-`cd ../server`
+Runs Vite dev server + Electron (Electron will spawn the Python API server automatically).
 
-`pip install -r requirements.txt`
+```bash
+npm run dev
+```
 
-`python main.py`
+- Frontend (Vite): `http://localhost:5174`
+- Backend (FastAPI + Socket.IO): Electron selects the first free port starting from `57988`
+- Logs: `~/jaaz-log.txt`
 
-## Development
+### 3) Production-like local run
 
-🟠 **Need Python version >=3.12**
+Build the UI into `react/dist` then launch Electron.
 
-VSCode/Cursor Install Extensions：
+```bash
+npm start
+```
 
-- Black Formatter by ms-python (ms-python.black-formatter)
+### 4) Run without Electron (browser)
 
-`cd react`
+Build the UI and run the Python server directly.
 
-`npm install --force && npm run dev`
+```bash
+cd react
+npm install --force
+npx vite build
+cd ../server
+pip install -r requirements.txt
+python main.py --port 57988
+```
 
-`cd server`
+Open `http://127.0.0.1:57988`.
 
-`pip install -r requirements.txt`
+### Useful scripts
 
-`python main.py`
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- `npm run dev:react` - only the Vite UI
+- `npm run dev:electron` - only Electron (expects Vite running)
+- `npm run start:electron` - Electron + built UI (expects `react/dist`)

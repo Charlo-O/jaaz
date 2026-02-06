@@ -15,6 +15,7 @@ from ..image_providers.replicate_provider import ReplicateImageProvider
 from ..image_providers.volces_provider import VolcesProvider
 from ..image_providers.wavespeed_provider import WavespeedProvider
 from ..image_providers.modelscope_provider import ModelScopeProvider
+from ..image_providers.mjproxy_provider import MJProxyImageProvider
 
 # from ..image_providers.comfyui_provider import ComfyUIProvider
 from .image_canvas_utils import (
@@ -29,6 +30,7 @@ IMAGE_PROVIDERS: dict[str, ImageProviderBase] = {
     "volces": VolcesProvider(),
     "wavespeed": WavespeedProvider(),
     "modelscope": ModelScopeProvider(),
+    "mjproxy": MJProxyImageProvider(),
 }
 
 

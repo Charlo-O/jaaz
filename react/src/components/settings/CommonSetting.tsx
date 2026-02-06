@@ -60,8 +60,13 @@ export default function CommonSetting({
   }
 
   const isImageProvider =
-    providerKey === 'replicate' || providerKey === 'huggingface'
+    providerKey === 'replicate' ||
+    providerKey === 'huggingface' ||
+    providerKey === 'mjproxy'
   const hasMaxTokens = !isImageProvider
+  // Some local providers may still require auth (e.g. MJProxy via Authorization header).
+  // Keep api_key configurable so users can match their server settings.
+  const hasApiKey = true
 
   return (
     <div className="space-y-4">
@@ -106,23 +111,25 @@ export default function CommonSetting({
         />
       </div>
 
-      {/* API Key Input */}
-      <div className="space-y-2">
-        <Label htmlFor={`${providerKey}-apiKey`}>
-          {t('settings:provider.apiKey')}
-        </Label>
-        <Input
-          id={`${providerKey}-apiKey`}
-          type="password"
-          placeholder={t('settings:provider.apiKeyPlaceholder')}
-          value={config.api_key ?? ''}
-          onChange={(e) => handleChange('api_key', e.target.value)}
-          className="w-full"
-        />
-        <p className="text-xs text-gray-500">
-          {t('settings:provider.apiKeyDescription')}
-        </p>
-      </div>
+      {/* API Key Input - hidden for mjproxy */}
+      {hasApiKey && (
+        <div className="space-y-2">
+          <Label htmlFor={`${providerKey}-apiKey`}>
+            {t('settings:provider.apiKey')}
+          </Label>
+          <Input
+            id={`${providerKey}-apiKey`}
+            type="password"
+            placeholder={t('settings:provider.apiKeyPlaceholder')}
+            value={config.api_key ?? ''}
+            onChange={(e) => handleChange('api_key', e.target.value)}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500">
+            {t('settings:provider.apiKeyDescription')}
+          </p>
+        </div>
+      )}
 
       {/* Models Configuration - only for custom providers */}
       {providerKey !== 'ollama' && (

@@ -95,10 +95,27 @@ AI 还可以让你在提交回复前进行确认：
 
 ## 开发指南
 
+🟠 依赖：**Node.js 20+** 和 **Python >= 3.12**
+
 ```bash
-cd react && npm i
-cd react && npm run dev
-cd server && python main.py
+# 根目录依赖（Electron、构建工具等）
+npm install
+
+# 前端依赖
+cd react
+npm install --force
+cd ..
+
+# 后端依赖
+cd server
+pip install -r requirements.txt
+cd ..
+
+# 启动（Vite + Electron；Electron 会自动拉起 Python 后端服务）
+npm run dev
 ```
+
+- 前端（Vite）：`http://localhost:5174`
+- 后端（FastAPI + Socket.IO）：Electron 会从 `57988` 开始寻找可用端口启动
 
 ---

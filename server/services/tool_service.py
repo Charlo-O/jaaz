@@ -44,6 +44,7 @@ from tools.generate_video_by_seedance_v1_lite_volces import (
     generate_video_by_seedance_v1_lite_i2v,
 )
 from tools.generate_video_by_kling_v2_jaaz import generate_video_by_kling_v2_jaaz
+from tools.generate_video_by_mjproxy import generate_video_by_mjproxy
 from tools.generate_image_by_recraft_v3_jaaz import generate_image_by_recraft_v3_jaaz
 from tools.generate_image_by_recraft_v3_replicate import (
     generate_image_by_recraft_v3_replicate,
@@ -51,6 +52,11 @@ from tools.generate_image_by_recraft_v3_replicate import (
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
 from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
+from tools.generate_image_by_mjproxy import (
+    generate_image_by_midjourney_v7_mjproxy,
+    generate_image_by_midjourney_v6_mjproxy,
+    generate_image_by_niji_mjproxy,
+)
 from tools.modelscope_dynamic import build_modelscope_tool
 from tools.generate_music_by_suno import generate_music_by_suno
 from services.config_service import config_service
@@ -105,6 +111,24 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "jaaz",
         "tool_function": generate_image_by_midjourney_jaaz,
     },
+    "generate_image_by_midjourney_v7_mjproxy": {
+        "display_name": "Midjourney V7 (Local)",
+        "type": "image",
+        "provider": "mjproxy",
+        "tool_function": generate_image_by_midjourney_v7_mjproxy,
+    },
+    "generate_image_by_midjourney_v6_mjproxy": {
+        "display_name": "Midjourney V6 (Local)",
+        "type": "image",
+        "provider": "mjproxy",
+        "tool_function": generate_image_by_midjourney_v6_mjproxy,
+    },
+    "generate_image_by_niji_mjproxy": {
+        "display_name": "Niji Journey (Local)",
+        "type": "image",
+        "provider": "mjproxy",
+        "tool_function": generate_image_by_niji_mjproxy,
+    },
     "generate_image_by_doubao_seedream_3_jaaz": {
         "display_name": "Doubao Seedream 3",
         "type": "image",
@@ -140,6 +164,12 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "video",
         "provider": "jaaz",
         "tool_function": generate_video_by_kling_v2_jaaz,
+    },
+    "generate_video_by_mjproxy": {
+        "display_name": "Midjourney Video (Local)",
+        "type": "video",
+        "provider": "mjproxy",
+        "tool_function": generate_video_by_mjproxy,
     },
     "generate_video_by_seedance_v1_pro_volces": {
         "display_name": "Doubao Seedance v1 by volces",
@@ -241,8 +271,17 @@ class ToolService:
         self.clear_tools()
         try:
             for provider_name, provider_config in config_service.app_config.items():
-                # register all tools by api provider with api key
-                if provider_config.get("api_key", ""):
+                # Register tools for enabled providers.
+                # Most cloud providers require an API key, but some local providers don't.
+                provider_api_key = str(provider_config.get("api_key", "")).strip()
+                provider_url = str(provider_config.get("url", "")).strip()
+                provider_enabled = bool(provider_api_key)
+
+                # Local providers that can run without API key
+                if provider_name in {"mjproxy"} and provider_url:
+                    provider_enabled = True
+
+                if provider_enabled:
                     for tool_id, tool_info in TOOL_MAPPING.items():
                         if tool_info.get("provider") == provider_name:
                             self.register_tool(tool_id, tool_info)
@@ -266,10 +305,12 @@ class ToolService:
                                     "tool_function": tool_fn,
                                     "display_name": model_name,
                                     "type": "image",
-                                }
+                                },
                             )
                         except Exception as e:
-                            print(f"❌ Failed to register ModelScope tool for {model_name}: {e}")
+                            print(
+                                f"❌ Failed to register ModelScope tool for {model_name}: {e}"
+                            )
 
         except Exception as e:
             print(f"❌ Failed to initialize tool service: {e}")

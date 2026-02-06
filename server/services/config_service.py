@@ -26,49 +26,56 @@ AppConfig = Dict[str, ProviderConfig]
 
 
 DEFAULT_PROVIDERS_CONFIG: AppConfig = {
-    'jaaz': {
-        'models': {
+    "jaaz": {
+        "models": {
             # text models
-            'gpt-4o': {'type': 'text'},
-            'gpt-4o-mini': {'type': 'text'},
-            'deepseek/deepseek-chat-v3-0324': {'type': 'text'},
-            'anthropic/claude-sonnet-4': {'type': 'text'},
-            'anthropic/claude-3.7-sonnet': {'type': 'text'},
+            "gpt-4o": {"type": "text"},
+            "gpt-4o-mini": {"type": "text"},
+            "deepseek/deepseek-chat-v3-0324": {"type": "text"},
+            "anthropic/claude-sonnet-4": {"type": "text"},
+            "anthropic/claude-3.7-sonnet": {"type": "text"},
         },
-        'url': os.getenv('BASE_API_URL', 'https://jaaz.app').rstrip('/') + '/api/v1/',
-        'api_key': '',
-        'max_tokens': 8192,
+        "url": os.getenv("BASE_API_URL", "https://jaaz.app").rstrip("/") + "/api/v1/",
+        "api_key": "",
+        "max_tokens": 8192,
     },
-    'comfyui': {
-        'models': {},
-        'url': 'http://127.0.0.1:8188',
-        'api_key': '',
+    "comfyui": {
+        "models": {},
+        "url": "http://127.0.0.1:8188",
+        "api_key": "",
     },
-    'ollama': {
-        'models': {},
-        'url': 'http://localhost:11434',
-        'api_key': '',
-        'max_tokens': 8192,
+    "mjproxy": {
+        "models": {},
+        # Local mjproxy / MJAPI base URL
+        # Example: http://127.0.0.1:8080
+        "url": "http://127.0.0.1:8080",
+        # Swagger uses: Authorization: {Token}
+        "api_key": "",
     },
-    'openai': {
-        'models': {
-            'gpt-4o': {'type': 'text'},
-            'gpt-4o-mini': {'type': 'text'},
+    "ollama": {
+        "models": {},
+        "url": "http://localhost:11434",
+        "api_key": "",
+        "max_tokens": 8192,
+    },
+    "openai": {
+        "models": {
+            "gpt-4o": {"type": "text"},
+            "gpt-4o-mini": {"type": "text"},
         },
-        'url': 'https://api.openai.com/v1/',
-        'api_key': '',
-        'max_tokens': 8192,
+        "url": "https://api.openai.com/v1/",
+        "api_key": "",
+        "max_tokens": 8192,
     },
-    'suno': {
-        'models': {
-            'chirp-v4': {'type': 'music'},
-            'chirp-v3-5': {'type': 'music'},
-            'chirp-auk': {'type': 'music'},
+    "suno": {
+        "models": {
+            "chirp-v4": {"type": "music"},
+            "chirp-v3-5": {"type": "music"},
+            "chirp-auk": {"type": "music"},
         },
-        'url': 'https://api.no1api.com',
-        'api_key': '',
+        "url": "https://api.no1api.com",
+        "api_key": "",
     },
-
 }
 
 SERVER_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -107,9 +114,31 @@ class ConfigService:
         )
         self.initialized = False
 
+    def _sanitize_config(self, config: AppConfig) -> AppConfig:
+        """Normalize user-provided config values.
+
+        The UI can accidentally store trailing spaces/newlines in api_key/url, which
+        breaks HTTP libraries (e.g. `Illegal header value`).
+        """
+
+        sanitized: AppConfig = {}
+        for provider, provider_config in (config or {}).items():
+            if not isinstance(provider_config, dict):
+                sanitized[provider] = provider_config  # type: ignore
+                continue
+
+            cfg = provider_config.copy()
+            if "url" in cfg and isinstance(cfg.get("url"), str):
+                cfg["url"] = cfg["url"].strip()
+            if "api_key" in cfg and isinstance(cfg.get("api_key"), str):
+                cfg["api_key"] = cfg["api_key"].strip()
+            sanitized[provider] = cfg
+
+        return sanitized
+
     def _get_jaaz_url(self) -> str:
         """Get the correct jaaz URL"""
-        return os.getenv('BASE_API_URL', 'https://jaaz.app').rstrip('/') + '/api/v1/'
+        return os.getenv("BASE_API_URL", "https://jaaz.app").rstrip("/") + "/api/v1/"
 
     async def initialize(self) -> None:
         try:
@@ -119,7 +148,8 @@ class ConfigService:
             # Check if config file exists
             if not self.exists_config():
                 print(
-                    f"Config file not found at {self.config_file}, creating default configuration")
+                    f"Config file not found at {self.config_file}, creating default configuration"
+                )
                 # Create default config file
                 with open(self.config_file, "w") as f:
                     toml.dump(self.app_config, f)
@@ -130,26 +160,31 @@ class ConfigService:
             async with aiofiles.open(self.config_file, "r") as f:
                 content = await f.read()
                 config: AppConfig = toml.loads(content)
+
+            config = self._sanitize_config(config)
             for provider, provider_config in config.items():
                 if provider not in DEFAULT_PROVIDERS_CONFIG:
-                    provider_config['is_custom'] = True
+                    provider_config["is_custom"] = True
                 self.app_config[provider] = provider_config
                 # Merge default models with user-configured models
-                provider_models = DEFAULT_PROVIDERS_CONFIG.get(
-                    provider, {}).get('models', {}).copy()
-                for model_name, model_config in provider_config.get('models', {}).items():
+                provider_models = (
+                    DEFAULT_PROVIDERS_CONFIG.get(provider, {}).get("models", {}).copy()
+                )
+                for model_name, model_config in provider_config.get(
+                    "models", {}
+                ).items():
                     # Keep all user-configured models (text, image, video)
                     if model_name not in provider_models:
                         provider_models[model_name] = model_config
-                        provider_models[model_name]['is_custom'] = True
+                        provider_models[model_name]["is_custom"] = True
                     else:
                         # Merge user config with default config
                         provider_models[model_name].update(model_config)
-                self.app_config[provider]['models'] = provider_models
+                self.app_config[provider]["models"] = provider_models
 
             # 确保 jaaz URL 始终正确
-            if 'jaaz' in self.app_config:
-                self.app_config['jaaz']['url'] = self._get_jaaz_url()
+            if "jaaz" in self.app_config:
+                self.app_config["jaaz"]["url"] = self._get_jaaz_url()
         except Exception as e:
             print(f"Error loading config: {e}")
             traceback.print_exc()
@@ -157,14 +192,15 @@ class ConfigService:
             self.initialized = True
 
     def get_config(self) -> AppConfig:
-        if 'jaaz' in self.app_config:
-            self.app_config['jaaz']['url'] = self._get_jaaz_url()
+        if "jaaz" in self.app_config:
+            self.app_config["jaaz"]["url"] = self._get_jaaz_url()
         return self.app_config
 
     async def update_config(self, data: AppConfig) -> Dict[str, str]:
         try:
-            if 'jaaz' in data:
-                data['jaaz']['url'] = self._get_jaaz_url()
+            data = self._sanitize_config(data)
+            if "jaaz" in data:
+                data["jaaz"]["url"] = self._get_jaaz_url()
 
             os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
             with open(self.config_file, "w") as f:

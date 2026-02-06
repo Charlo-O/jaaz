@@ -44,6 +44,10 @@ export const PROVIDER_NAME_MAPPING: {
     name: 'ComfyUI',
     icon: 'https://framerusercontent.com/images/3cNQMWKzIhIrQ5KErBm7dSmbd2w.png',
   },
+  mjproxy: {
+    name: 'MJProxy',
+    icon: 'https://www.midjourney.com/favicon.ico',
+  },
 }
 
 // Tool call name mapping

@@ -92,41 +92,65 @@
 
 
 
-## 手动安装 (适用于 Linux 或本地构建)
+## 源码启动
 
-🟠 **Need Python version >=3.12**
+🟠 依赖：**Node.js 20+** 和 **Python >= 3.12**
 
-首先 git clone 这个仓库：
+### 1) 安装依赖
 
-`git clone https://github.com/11cafe/localart`
+```bash
+# 根目录依赖（Electron、构建工具等）
+npm install
 
-`cd react`
+# 前端依赖
+cd react
+npm install --force
+cd ..
 
-`npm install --force`
+# 后端依赖
+cd server
+pip install -r requirements.txt
+cd ..
+```
 
-`npx vite build`
+### 2) 开发模式（推荐）
 
-`cd ../server`
+同时启动 Vite + Electron（Electron 会自动拉起 Python 后端服务）。
 
-`pip install -r requirements.txt`
+```bash
+npm run dev
+```
 
-`python main.py`
+- 前端（Vite）：`http://localhost:5174`
+- 后端（FastAPI + Socket.IO）：Electron 会从 `57988` 开始寻找可用端口启动
+- 日志：`~/jaaz-log.txt`
 
-## 开发
+### 3) 类生产本地启动
 
-🟠 **Need Python version >=3.12**
+先构建 UI 到 `react/dist`，再启动 Electron。
 
-VSCode/Cursor Install Extensions：
+```bash
+npm start
+```
 
-- Black Formatter by ms-python (ms-python.black-formatter)
+### 4) 不使用 Electron（浏览器访问）
 
-`cd react`
+构建 UI 并直接运行 Python 服务：
 
-`npm install --force && npm run dev`
+```bash
+cd react
+npm install --force
+npx vite build
+cd ../server
+pip install -r requirements.txt
+python main.py --port 57988
+```
 
-`cd server`
+浏览器打开 `http://127.0.0.1:57988`。
 
-`pip install -r requirements.txt`
+### 常用脚本
 
-`python main.py`
+- `npm run dev:react` - 只启动前端
+- `npm run dev:electron` - 只启动 Electron（需要先启动 Vite）
+- `npm run start:electron` - Electron + 已构建 UI（需要 `react/dist`）
 

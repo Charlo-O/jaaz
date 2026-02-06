@@ -15,6 +15,7 @@ from models.config_model import ModelInfo
 
 class ContextInfo(TypedDict):
     """Context information passed to tools"""
+
     canvas_id: str
     session_id: str
     model_info: Dict[str, List[ModelInfo]]
@@ -34,20 +35,20 @@ def _fix_chat_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     # 第一遍：收集所有ToolMessage的tool_call_id
     for msg in messages:
-        if msg.get('role') == 'tool' and msg.get('tool_call_id'):
-            tool_call_id = msg.get('tool_call_id')
+        if msg.get("role") == "tool" and msg.get("tool_call_id"):
+            tool_call_id = msg.get("tool_call_id")
             if tool_call_id:
                 tool_call_ids.add(tool_call_id)
 
     # 第二遍：修复AIMessage中的tool_calls
     for msg in messages:
-        if msg.get('role') == 'assistant' and msg.get('tool_calls'):
+        if msg.get("role") == "assistant" and msg.get("tool_calls"):
             # 过滤掉没有对应ToolMessage的tool_calls
             valid_tool_calls: List[Dict[str, Any]] = []
             removed_calls: List[str] = []
 
-            for tool_call in msg.get('tool_calls', []):
-                tool_call_id = tool_call.get('id')
+            for tool_call in msg.get("tool_calls", []):
+                tool_call_id = tool_call.get("id")
                 if tool_call_id in tool_call_ids:
                     valid_tool_calls.append(tool_call)
                 elif tool_call_id:
@@ -56,16 +57,17 @@ def _fix_chat_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             # 记录修复信息
             if removed_calls:
                 print(
-                    f"🔧 修复消息历史：移除了 {len(removed_calls)} 个不完整的工具调用: {removed_calls}")
+                    f"🔧 修复消息历史：移除了 {len(removed_calls)} 个不完整的工具调用: {removed_calls}"
+                )
 
             # 更新消息
             if valid_tool_calls:
                 msg_copy = msg.copy()
-                msg_copy['tool_calls'] = valid_tool_calls
+                msg_copy["tool_calls"] = valid_tool_calls
                 fixed_messages.append(msg_copy)
-            elif msg.get('content'):  # 如果没有有效的tool_calls但有content，保留消息
+            elif msg.get("content"):  # 如果没有有效的tool_calls但有content，保留消息
                 msg_copy = msg.copy()
-                msg_copy.pop('tool_calls', None)  # 移除空的tool_calls
+                msg_copy.pop("tool_calls", None)  # 移除空的tool_calls
                 fixed_messages.append(msg_copy)
             # 如果既没有有效tool_calls也没有content，跳过这条消息
         else:
@@ -81,7 +83,7 @@ async def langgraph_multi_agent(
     session_id: str,
     text_model: ModelInfo,
     tool_list: List[ToolInfoJson],
-    system_prompt: Optional[str] = None
+    system_prompt: Optional[str] = None,
 ) -> None:
     """多智能体处理函数
 
@@ -104,31 +106,29 @@ async def langgraph_multi_agent(
         agents = AgentManager.create_agents(
             text_model_instance,
             tool_list,  # 传入所有注册的工具
-            system_prompt or ""
+            system_prompt or "",
         )
         agent_names = [agent.name for agent in agents]
-        print('👇agent_names', agent_names)
-        last_agent = AgentManager.get_last_active_agent(
-            fixed_messages, agent_names)
+        print("👇agent_names", agent_names)
+        last_agent = AgentManager.get_last_active_agent(fixed_messages, agent_names)
 
-        print('👇last_agent', last_agent)
+        print("👇last_agent", last_agent)
 
         # 4. 创建智能体群组
         swarm = create_swarm(
             agents=agents,  # type: ignore
-            default_active_agent=last_agent if last_agent else agent_names[0]
+            default_active_agent=last_agent if last_agent else agent_names[0],
         )
 
         # 5. 创建上下文
         context = {
-            'canvas_id': canvas_id,
-            'session_id': session_id,
-            'tool_list': tool_list,
+            "canvas_id": canvas_id,
+            "session_id": session_id,
+            "tool_list": tool_list,
         }
 
         # 6. 流处理
-        processor = StreamProcessor(
-            session_id, db_service, send_to_websocket)  # type: ignore
+        processor = StreamProcessor(session_id, db_service, send_to_websocket)  # type: ignore
         await processor.process_stream(swarm, fixed_messages, context)
 
     except Exception as e:
@@ -137,16 +137,17 @@ async def langgraph_multi_agent(
 
 def _create_text_model(text_model: ModelInfo) -> Any:
     """创建语言模型实例"""
-    model = text_model.get('model')
-    provider = text_model.get('provider')
-    url = text_model.get('url')
-    api_key = config_service.app_config.get(  # type: ignore
-        provider, {}).get("api_key", "")
+    model = text_model.get("model")
+    provider = text_model.get("provider")
+    url = text_model.get("url")
+    api_key = str(
+        config_service.app_config.get(provider, {}).get("api_key", "")  # type: ignore
+    ).strip()
 
     # TODO: Verify if max token is working
     # max_tokens = text_model.get('max_tokens', 8148)
 
-    if provider == 'ollama':
+    if provider == "ollama":
         return ChatOllama(
             model=model,
             base_url=url,
@@ -163,18 +164,17 @@ def _create_text_model(text_model: ModelInfo) -> Any:
             temperature=0,
             # max_tokens=max_tokens, # TODO: 暂时注释掉有问题的参数
             http_client=http_client,
-            http_async_client=http_async_client
+            http_async_client=http_async_client,
         )
 
 
 async def _handle_error(error: Exception, session_id: str) -> None:
     """处理错误"""
-    print('Error in langgraph_agent', error)
+    print("Error in langgraph_agent", error)
     tb_str = traceback.format_exc()
     print(f"Full traceback:\n{tb_str}")
     traceback.print_exc()
 
-    await send_to_websocket(session_id, cast(Dict[str, Any], {
-        'type': 'error',
-        'error': str(error)
-    }))
+    await send_to_websocket(
+        session_id, cast(Dict[str, Any], {"type": "error", "error": str(error)})
+    )
